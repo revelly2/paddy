@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+env/
+.venv/
+
+# ML
+ml/saved_model/
+ml/logs/
+ml/dataset/train/
+ml/dataset/val/
+ml/dataset/test/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.env
+
+# Environment
+.env
+backend/.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp

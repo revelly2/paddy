@@ -1,0 +1,21 @@
+# ============================================================
+# Paddy Rice CNN — ML Component Dependencies
+# ============================================================
+# Install with:  pip install -r requirements.txt
+# Recommended Python version: 3.10 or 3.11
+# ============================================================
+
+# Core deep learning framework
+tensorflow>=2.13.0
+
+# Image I/O and manipulation
+Pillow>=10.0.0
+
+# Numerical computing (TF dependency, but pin for compatibility)
+numpy>=1.24.0
+
+# Plotting training curves (optional but useful)
+matplotlib>=3.7.0
+
+# For TFLite conversion (included in tensorflow, listed for clarity)
+# tf2onnx>=1.15.0  # Uncomment if you need ONNX export for edge deployment
