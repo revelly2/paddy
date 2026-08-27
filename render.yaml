@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: paddy-backend
+    env: python
+    buildCommand: "cd backend && pip install -r requirements.txt"
+    startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: "https://your-vercel-frontend-url.vercel.app"
+      - key: MODEL_PATH
+        value: "../ml/saved_model/paddy_cnn.keras"
+      - key: STORAGE_BUCKET
+        value: "rice-images"
