@@ -53,7 +53,7 @@ STEP 4: SETUP THE FRONTEND (REACT)
 3. Set up Environment Variables:
    - Make a copy of the `frontend/.env.example` file.
    - Rename the copy to exactly `.env`
-   - Open `.env` and fill in your Supabase credentials.
+   - Open `.env` and fill in the EXACT SAME Supabase URL and Anon Key that you used for the backend.
    - Make sure it has this line so it can talk to your local backend:
      VITE_API_BASE_URL=http://localhost:8000
 
