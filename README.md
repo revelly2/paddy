@@ -10,15 +10,15 @@
 paddy/
 ├── database/           Supabase/Postgres schema SQL
 │   └── schema.sql
-├── ml/                 Python CNN model (TensorFlow/Keras)
-│   ├── model_config.py Shared constants (image size, class names, etc.)
-│   ├── train.py        Training script (two-phase MobileNetV2 fine-tuning)
-│   ├── predict.py      CLI inference script
+├── ml/                 (Deprecated) Python CNN model (TensorFlow/Keras)
+│   ├── model_config.py 
+│   ├── train.py        
+│   ├── predict.py      
 │   ├── requirements.txt
-│   └── dataset/        ← Place your dataset here (see below)
+│   └── dataset/        
 ├── backend/            Python FastAPI REST API
 │   ├── main.py         API routes & Supabase integration
-│   ├── classifier.py   CNN model singleton wrapper
+│   ├── classifier.py   Roboflow Workflow API integration
 │   ├── supabase_client.py
 │   ├── requirements.txt
 │   └── .env.example
@@ -128,12 +128,13 @@ Edit `.env` and fill in:
 SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
 SUPABASE_ANON_KEY=your_anon_key_here
 SUPABASE_SERVICE_KEY=your_service_role_key_here
-MODEL_PATH=../ml/saved_model/paddy_cnn.keras
+ROBOFLOW_API_KEY=your_roboflow_api_key_here
 STORAGE_BUCKET=rice-images
 ALLOWED_ORIGINS=http://localhost:5173
 ```
 
 > Find your Supabase credentials in: **Dashboard → Settings → API**
+> Find your Roboflow API key in: **app.roboflow.com → Settings → API Key**
 
 #### 3b. Install dependencies
 
@@ -186,7 +187,7 @@ Open `http://localhost:5173` in your browser.
 ```
 Farmer → takes rice photo → uploads to ClassifyPage
   → React sends FormData to POST /api/classify
-  → FastAPI: validates image → runs CNN → uploads to Supabase Storage
+  → FastAPI: validates image → calls Roboflow Workflow API → uploads to Supabase Storage
   → Stores result in Supabase DB → returns JSON prediction
   → React displays ResultCard with label, confidence, harvest advice
   → History page shows all past scans
@@ -199,7 +200,7 @@ Farmer → takes rice photo → uploads to ClassifyPage
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET`  | `/health` | Health check (no auth) |
-| `POST` | `/api/classify` | Upload image → CNN prediction |
+| `POST` | `/api/classify` | Upload image → Roboflow classification |
 | `GET`  | `/api/classifications` | Paginated scan history |
 | `GET`  | `/api/classifications/{id}` | Single result |
 | `DELETE` | `/api/classifications/{id}` | Delete record + image |
@@ -209,20 +210,14 @@ All `/api/*` endpoints require `Authorization: Bearer <supabase_jwt>`.
 
 ---
 
-## CNN Architecture
+## Classification Architecture
 
-```
-Input: (224, 224, 3)
-  └─ MobileNetV2 (ImageNet pre-trained backbone)
-       └─ GlobalAveragePooling2D
-            └─ Dense(256) → BatchNorm → ReLU → Dropout(0.4)
-                 └─ Dense(3, softmax)   ← Immature / Nearly Mature / Ready for Harvest
-```
+Instead of a local CNN, this version integrates a remote **Roboflow Workflow** for classifying harvest maturity:
+- **Workflow Name**: Rice Classification T1 (ViT Base)
+- **Method**: Serverless REST API via `httpx`
+- **Output**: JSON payload with `label` (Immature, Nearly Mature, Ready for Harvest) and `confidence`.
 
-**Why MobileNetV2?**
-- Lightweight (~3.4M params) — exportable to embedded hardware
-- Excellent accuracy on domain-shifted datasets when fine-tuned
-- TFLite export for future edge deployment (Raspberry Pi, OV2640 camera modules)
+This workflow simplifies the backend, avoiding heavy local ML frameworks like TensorFlow or PyTorch.
 
 ---
 

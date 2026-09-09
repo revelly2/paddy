@@ -40,6 +40,7 @@ STEP 3: SETUP THE BACKEND (PYTHON)
    - Make a copy of the `backend/.env.example` file.
    - Rename the copy to exactly `.env`
    - Open `.env` and fill in your Supabase credentials (SUPABASE_URL, etc.)
+   - Fill in your Roboflow API key (`ROBOFLOW_API_KEY`) to enable the classification workflow.
 
 ---------------------------------------------------------
 STEP 4: SETUP THE FRONTEND (REACT)

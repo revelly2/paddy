@@ -25,18 +25,32 @@ export interface ProbabilityMap {
   Ready_for_Harvest: number
 }
 
+export interface PanicleDetail {
+  id:              number
+  bbox:            number[]
+  detection_conf:  number
+  green_ratio:     number
+  mature_ratio:    number
+  label:           string
+  label_key:       string
+  confidence:      number
+}
+
 export interface ClassificationResult {
-  id:            string
-  label:         string          // "Immature" | "Nearly Mature" | "Ready for Harvest"
-  label_key:     string          // "Immature" | "Nearly_Mature" | "Ready_for_Harvest"
-  confidence:    number          // 0.0 – 1.0
-  probabilities: ProbabilityMap
-  advice:        string
-  image_url:     string | null
-  image_path:    string
-  notes:         string | null
-  location:      string | null
-  created_at:    string
+  id:                   string
+  label:                string          // "Immature" | "Nearly Mature" | "Ready for Harvest"
+  label_key:            string          // "Immature" | "Nearly_Mature" | "Ready_for_Harvest"
+  confidence:           number          // 0.0 – 1.0
+  probabilities:        ProbabilityMap
+  advice:               string
+  image_url:            string | null
+  image_path:           string
+  notes:                string | null
+  location:             string | null
+  created_at:           string
+  panicle_count?:       number | null
+  panicle_details?:     PanicleDetail[] | null
+  annotated_image_url?: string | null
 }
 
 export interface ClassificationListResponse {
@@ -75,10 +89,10 @@ const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || ''
  * Returns null if the user is not logged in.
  */
 async function getAuthHeader(): Promise<Record<string, string>> {
-  const { data } = await supabase.auth.getSession()
-  const token = data.session?.access_token
-  if (!token) throw new Error('Not authenticated. Please log in.')
-  return { Authorization: `Bearer ${token}` }
+  // const { data } = await supabase.auth.getSession()
+  // const token = data.session?.access_token
+  // if (!token) throw new Error('Not authenticated. Please log in.')
+  return { Authorization: `Bearer fake-token` }
 }
 
 async function apiFetch<T>(

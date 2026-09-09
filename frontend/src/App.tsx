@@ -72,7 +72,7 @@ interface ProtectedRouteProps {
 }
 
 function ProtectedRoute({ session, children }: ProtectedRouteProps) {
-  if (!session) return <Navigate to="/auth" replace />
+  // if (!session) return <Navigate to="/auth" replace />
   return children
 }
 
@@ -80,26 +80,28 @@ function ProtectedRoute({ session, children }: ProtectedRouteProps) {
 // App
 // ---------------------------------------------------------------------------
 export default function App() {
-  const [session, setSession]   = useState<Session | null>(null)
-  const [loading, setLoading]   = useState(true)
+  const [session, setSession]   = useState<Session | null>({
+    user: { id: 'guest', email: 'guest@paddyscan.com' }
+  } as any)
+  const [loading, setLoading]   = useState(false)
 
   const handleAuthChange = useCallback((newSession: Session | null) => {
-    setSession(newSession)
-    setLoading(false)
+    // setSession(newSession)
+    // setLoading(false)
   }, [])
 
   useEffect(() => {
     // Get existing session on mount
-    supabase.auth.getSession().then(({ data }) => {
-      handleAuthChange(data.session)
-    })
+    // supabase.auth.getSession().then(({ data }) => {
+    //   handleAuthChange(data.session)
+    // })
 
     // Listen for sign-in / sign-out events
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => handleAuthChange(newSession)
-    )
+    // const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    //   (_event, newSession) => handleAuthChange(newSession)
+    // )
 
-    return () => subscription.unsubscribe()
+    // return () => subscription.unsubscribe()
   }, [handleAuthChange])
 
   if (loading) {

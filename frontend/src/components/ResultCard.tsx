@@ -1,16 +1,17 @@
 /**
  * ResultCard.tsx
  * --------------
- * Displays the CNN classification result in a visually rich card.
+ * Displays the classification result including panicle detection overlays.
  *
  * Features
  * --------
  * - Animated entry (slide-up on mount)
  * - Colour-coded badge for each maturity level
  * - Confidence percentage with animated progress bar
+ * - Panicle detection count badge
+ * - Toggle between raw and annotated (detection overlay) images
  * - All three class probability bars
  * - Farmer-friendly harvest advice text
- * - Image preview thumbnail
  * - Share / copy result link
  *
  * Props
@@ -19,9 +20,9 @@
  * onReset — callback to clear the result and allow a new upload
  */
 
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
-  CheckCircle, AlertTriangle, Clock, RotateCcw, Copy, Info
+  CheckCircle, AlertTriangle, Clock, RotateCcw, Copy, Info, Eye, EyeOff, Scan
 } from 'lucide-react'
 import { type ClassificationResult, getLabelConfig, formatConfidence } from '../lib/api'
 
@@ -40,6 +41,13 @@ const LABEL_ICONS: Record<string, React.ReactNode> = {
 export default function ResultCard({ result, onReset }: ResultCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   const config  = getLabelConfig(result.label)
+  const [showAnnotated, setShowAnnotated] = useState(true)
+
+  // Determine which image to display
+  const hasAnnotated = !!result.annotated_image_url
+  const displayImage = showAnnotated && hasAnnotated
+    ? result.annotated_image_url
+    : result.image_url
 
   // Animate card into view
   useEffect(() => {
@@ -59,6 +67,7 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
       `PaddyScan Result\n` +
       `Label: ${result.label}\n` +
       `Confidence: ${formatConfidence(result.confidence)}\n` +
+      `Panicles Detected: ${result.panicle_count ?? 'N/A'}\n` +
       `Date: ${new Date(result.created_at).toLocaleString()}\n` +
       `Advice: ${result.advice}`
     navigator.clipboard?.writeText(text)
@@ -97,14 +106,39 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
         </div>
       </div>
 
-      {/* Image thumbnail */}
-      {result.image_url && (
+      {/* Panicle detection badge */}
+      {result.panicle_count != null && (
+        <div className="result-card__panicle-badge">
+          <Scan size={16} />
+          <span>
+            <strong>{result.panicle_count}</strong> panicle{result.panicle_count !== 1 ? 's' : ''} detected
+          </span>
+        </div>
+      )}
+
+      {/* Image — with annotated/raw toggle */}
+      {displayImage && (
         <div className="result-card__image-wrap">
           <img
-            src={result.image_url}
-            alt="Classified rice paddy"
+            src={displayImage}
+            alt={
+              showAnnotated && hasAnnotated
+                ? 'Annotated rice paddy with panicle detection overlay'
+                : 'Classified rice paddy'
+            }
             className="result-card__image"
           />
+          {hasAnnotated && (
+            <button
+              type="button"
+              className="result-card__image-toggle"
+              onClick={() => setShowAnnotated(!showAnnotated)}
+              title={showAnnotated ? 'Show original image' : 'Show detection overlay'}
+            >
+              {showAnnotated ? <EyeOff size={14} /> : <Eye size={14} />}
+              {showAnnotated ? 'Original' : 'Detection'}
+            </button>
+          )}
         </div>
       )}
 

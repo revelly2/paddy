@@ -2,7 +2,7 @@
 # Paddy Rice Backend — Python Dependencies
 # ============================================================
 # Install with:  pip install -r requirements.txt
-# Recommended Python version: 3.10 or 3.11
+# Recommended Python version: 3.10+
 # ============================================================
 
 # Web framework
@@ -18,16 +18,16 @@ python-dotenv>=1.0.0
 # Supabase Python client
 supabase>=2.4.0
 
-# Deep learning (shared with ml/ component)
-tensorflow>=2.13.0
-
 # Image processing
 Pillow>=10.0.0
+
+# OpenCV for HSV color analysis and annotated image generation
+opencv-python-headless>=4.8.0
 
 # Numerical computing
 numpy>=1.24.0
 
-# CORS, auth helpers
+# HTTP client (Roboflow REST API calls + CORS helpers)
 httpx>=0.27.0
 
 # JWT decoding for auth header validation
