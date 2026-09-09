@@ -12,8 +12,8 @@ services:
       - key: SUPABASE_SERVICE_KEY
         sync: false
       - key: ALLOWED_ORIGINS
-        value: "https://your-vercel-frontend-url.vercel.app"
-      - key: MODEL_PATH
-        value: "../ml/saved_model/paddy_cnn.keras"
+        value: "https://paddy-orpin.vercel.app"
+      - key: ROBOFLOW_API_KEY
+        sync: false
       - key: STORAGE_BUCKET
         value: "rice-images"
