@@ -1,23 +1,3 @@
-/**
- * ImageUploader.tsx
- * -----------------
- * Drag-and-drop image upload component using react-dropzone.
- *
- * Features
- * --------
- * - Drag-and-drop zone with visual feedback
- * - Click-to-browse fallback for non-drag-capable devices
- * - Image preview after selection
- * - File validation (MIME type + size < 10 MB)
- * - Optional notes and location fields
- * - Accessible (keyboard + ARIA)
- *
- * Props
- * -----
- * onSubmit(file, notes, location) — called when the user clicks Classify
- * loading                         — disables submit while classification runs
- */
-
 import { useCallback, useState } from 'react'
 import { useDropzone, type FileRejection } from 'react-dropzone'
 import { Upload, ImageIcon, X, MapPin, FileText, Zap } from 'lucide-react'
@@ -84,9 +64,9 @@ export default function ImageUploader({ onSubmit, loading }: ImageUploaderProps)
         {...getRootProps()}
         id="dropzone"
         className={[
-          'uploader__zone',
-          isDragActive  ? 'uploader__zone--drag'    : '',
-          file          ? 'uploader__zone--has-file' : '',
+          'uploader-modern-zone',
+          isDragActive  ? 'uploader-modern-zone--drag'    : '',
+          file          ? 'uploader-modern-zone--has-file' : '',
           loading       ? 'uploader__zone--disabled' : '',
         ].join(' ')}
         aria-label="Image upload area"
@@ -95,17 +75,18 @@ export default function ImageUploader({ onSubmit, loading }: ImageUploaderProps)
 
         {preview && file ? (
           /* Image preview */
-          <div className="uploader__preview">
+          <div className="uploader__preview" style={{ width: '100%', borderRadius: '8px', overflow: 'hidden' }}>
             <img
               src={preview}
               alt="Selected rice image"
               className="uploader__preview-img"
+              style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '8px' }}
             />
-            <div className="uploader__preview-overlay">
-              <div className="uploader__preview-info">
-                <ImageIcon size={16} />
-                <span>{file.name}</span>
-                <span className="uploader__preview-size">
+            <div className="uploader__preview-overlay" style={{ marginTop: '12px', background: '#f8fafc', padding: '12px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #e2e8f0' }}>
+              <div className="uploader__preview-info" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--clr-text-main)' }}>
+                <ImageIcon size={20} color="var(--clr-primary-600)" />
+                <span style={{ fontWeight: 500 }}>{file.name}</span>
+                <span style={{ color: 'var(--clr-text-muted)', fontSize: '0.875rem' }}>
                   ({(file.size / 1024).toFixed(0)} KB)
                 </span>
               </div>
@@ -113,29 +94,29 @@ export default function ImageUploader({ onSubmit, loading }: ImageUploaderProps)
                 <button
                   type="button"
                   id="btn-clear-image"
-                  className="uploader__clear"
                   onClick={clearFile}
                   title="Remove image"
                   aria-label="Remove selected image"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text-muted)' }}
                 >
-                  <X size={18} />
+                  <X size={20} />
                 </button>
               )}
             </div>
           </div>
         ) : (
           /* Empty state */
-          <div className="uploader__empty">
-            <div className="uploader__icon">
-              <Upload size={40} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div className="uploader-modern-icon-wrapper">
+              <Upload size={24} className="uploader-modern-icon" />
             </div>
-            <p className="uploader__heading">
+            <p className="uploader-modern-title">
               {isDragActive ? 'Drop the image here…' : 'Drop your rice photo here'}
             </p>
-            <p className="uploader__subtext">
-              or <span className="uploader__browse">click to browse</span>
+            <p className="uploader-modern-subtitle" style={{ marginBottom: '8px' }}>
+              or <span style={{ color: 'var(--clr-primary-600)', fontWeight: 500 }}>click to browse</span>
             </p>
-            <p className="uploader__hint">
+            <p style={{ fontSize: '0.75rem', color: 'var(--clr-text-muted)' }}>
               JPEG, PNG, BMP, WEBP — up to 10 MB
             </p>
           </div>
@@ -144,23 +125,23 @@ export default function ImageUploader({ onSubmit, loading }: ImageUploaderProps)
 
       {/* Error message */}
       {error && (
-        <p role="alert" className="uploader__error">
+        <p role="alert" className="uploader__error" style={{ color: '#dc2626', marginTop: '12px', fontSize: '0.875rem' }}>
           ⚠ {error}
         </p>
       )}
 
       {/* Optional metadata fields */}
       {file && (
-        <div className="uploader__meta">
+        <div className="uploader__meta" style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div className="uploader__field">
-            <label htmlFor="input-location" className="uploader__label">
-              <MapPin size={14} />
+            <label htmlFor="input-location" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.875rem', fontWeight: 500, color: 'var(--clr-text-main)', marginBottom: '8px' }}>
+              <MapPin size={16} color="var(--clr-text-muted)" />
               Farm location (optional)
             </label>
             <input
               id="input-location"
               type="text"
-              className="uploader__input"
+              style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.875rem' }}
               placeholder="e.g. Barangay Sta. Cruz, Cagayan"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
@@ -169,13 +150,13 @@ export default function ImageUploader({ onSubmit, loading }: ImageUploaderProps)
           </div>
 
           <div className="uploader__field">
-            <label htmlFor="input-notes" className="uploader__label">
-              <FileText size={14} />
+            <label htmlFor="input-notes" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.875rem', fontWeight: 500, color: 'var(--clr-text-main)', marginBottom: '8px' }}>
+              <FileText size={16} color="var(--clr-text-muted)" />
               Notes (optional)
             </label>
             <textarea
               id="input-notes"
-              className="uploader__textarea"
+              style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.875rem', resize: 'vertical' }}
               placeholder="e.g. NSIC Rc 222 variety, 105 days after transplanting"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -191,12 +172,12 @@ export default function ImageUploader({ onSubmit, loading }: ImageUploaderProps)
         id="btn-classify"
         type="submit"
         disabled={!file || loading}
-        className="uploader__submit"
+        className="uploader-modern-submit"
         aria-busy={loading}
       >
         {loading ? (
           <>
-            <span className="spinner spinner--sm" aria-hidden="true" />
+            <span className="spinner spinner--sm" aria-hidden="true" style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff', width: '18px', height: '18px' }} />
             Analysing image…
           </>
         ) : (

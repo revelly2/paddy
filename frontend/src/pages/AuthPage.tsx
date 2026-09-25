@@ -83,9 +83,9 @@ export default function AuthPage() {
             AI-powered harvest timing for Filipino smallholder farmers
           </p>
           <div className="auth-page__brand-classes">
-            <span className="auth-page__class auth-page__class--green">🌱 Immature</span>
-            <span className="auth-page__class auth-page__class--amber">🌾 Nearly Mature</span>
-            <span className="auth-page__class auth-page__class--red">🏆 Ready for Harvest</span>
+            <span className="auth-page__class auth-page__class--green">Immature</span>
+            <span className="auth-page__class auth-page__class--amber">Nearly Mature</span>
+            <span className="auth-page__class auth-page__class--red">Ready for Harvest</span>
           </div>
         </div>
       </div>
@@ -110,14 +110,14 @@ export default function AuthPage() {
           {/* Success message (after sign-up) */}
           {message && (
             <div role="status" className="auth-card__message">
-              ✅ {message}
+              {message}
             </div>
           )}
 
           {/* Error message */}
           {error && (
             <div role="alert" className="auth-card__error">
-              ⚠ {error}
+              {error}
             </div>
           )}
 

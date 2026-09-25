@@ -97,7 +97,6 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
           {LABEL_ICONS[result.label] ?? LABEL_ICONS['Immature']}
         </div>
         <div className="result-card__title-block">
-          <span className="result-card__emoji">{config.emoji}</span>
           <h2 className="result-card__label">{result.label}</h2>
           <p className="result-card__tagline">{config.tagline}</p>
         </div>
@@ -185,19 +184,15 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
 
       {/* Harvest advice */}
       <div className="result-card__advice">
-        <p className="result-card__advice-title">💡 Recommendation</p>
+        <p className="result-card__advice-title">Recommendation</p>
         <p className="result-card__advice-text">{result.advice}</p>
       </div>
 
       {/* Metadata */}
       {(result.location || result.notes) && (
         <div className="result-card__meta">
-          {result.location && (
-            <p><strong>📍 Location:</strong> {result.location}</p>
-          )}
-          {result.notes && (
-            <p><strong>📝 Notes:</strong> {result.notes}</p>
-          )}
+            <p><strong>Location:</strong> {result.location}</p>
+            <p><strong>Notes:</strong> {result.notes}</p>
         </div>
       )}
 

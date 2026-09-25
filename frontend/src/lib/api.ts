@@ -209,28 +209,24 @@ export const LABEL_CONFIG: Record<string, {
   color:      string
   bgColor:    string
   borderColor: string
-  emoji:      string
   tagline:    string
 }> = {
   'Immature': {
     color:       '#15803d',
     bgColor:     '#dcfce7',
     borderColor: '#86efac',
-    emoji:       '🌱',
     tagline:     'Too early to harvest',
   },
   'Nearly Mature': {
     color:       '#b45309',
     bgColor:     '#fef3c7',
     borderColor: '#fcd34d',
-    emoji:       '🌾',
     tagline:     'Almost ready — monitor daily',
   },
   'Ready for Harvest': {
     color:       '#b91c1c',
     bgColor:     '#fee2e2',
     borderColor: '#fca5a5',
-    emoji:       '🏆',
     tagline:     'Harvest now!',
   },
 }

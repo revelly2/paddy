@@ -1,14 +1,9 @@
-/**
- * NavBar.tsx
- * ----------
- * Top navigation bar with logo, nav links, and sign-out button.
- * Shows the farmer's name when available.
- * Fully responsive — collapses to a hamburger on small screens.
- */
-
 import { useState, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Menu, X, Leaf, LogOut, History, Camera, Home } from 'lucide-react'
+import { 
+  Menu, X, Search, BarChart2, Layers, CheckSquare, 
+  PieChart, Users, LifeBuoy, Settings, PlayCircle, LogOut, Camera
+} from 'lucide-react'
 import { supabase, type Session } from '../lib/supabase'
 
 interface NavBarProps {
@@ -16,11 +11,11 @@ interface NavBarProps {
 }
 
 export default function NavBar({ session }: NavBarProps) {
-  const navigate     = useNavigate()
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
-  const [name,  setName]  = useState('')
+  const [name, setName] = useState('Farmer')
+  const [email, setEmail] = useState('')
 
-  // Load farmer's name from profiles table
   useEffect(() => {
     const loadProfile = async () => {
       const { data } = await supabase
@@ -28,100 +23,138 @@ export default function NavBar({ session }: NavBarProps) {
         .select('full_name')
         .eq('id', session.user.id)
         .single()
+      
       if (data?.full_name) setName(data.full_name)
-      else setName(session.user.email?.split('@')[0] ?? 'Farmer')
+      if (session.user.email) setEmail(session.user.email)
     }
     loadProfile()
   }, [session])
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    navigate('/auth')
-  }
-
   const navItems = [
-    { to: '/',         label: 'Home',     icon: Home    },
-    { to: '/classify', label: 'Classify', icon: Camera  },
-    { to: '/history',  label: 'History',  icon: History },
+    { to: '/',           label: 'Dashboard', icon: BarChart2 },
+    { to: '/classify',   label: 'Classify',  icon: Camera },
+    { to: '/history',    label: 'History',   icon: Layers },
+  ]
+
+  const bottomNavItems = [
+    { to: '/support',    label: 'Support',   icon: LifeBuoy },
+    { to: '/settings',   label: 'Settings',  icon: Settings },
   ]
 
   return (
-    <nav className="navbar">
-      <div className="navbar__inner">
-        {/* Logo */}
-        <NavLink to="/" className="navbar__logo">
-          <div className="navbar__logo-icon">
-            <Leaf size={20} />
+    <>
+      <aside className="sidebar">
+        <div className="sidebar__header">
+          <div className="sidebar__logo">
+            <div className="sidebar__logo-dot"></div>
+            <span className="sidebar__logo-text">PaddyScan</span>
           </div>
-          <span className="navbar__logo-text">PaddyScan</span>
-        </NavLink>
-
-        {/* Desktop links */}
-        <ul className="navbar__links">
-          {navItems.map(({ to, label, icon: Icon }) => (
-            <li key={to}>
-              <NavLink
-                to={to}
-                end={to === '/'}
-                className={({ isActive }) =>
-                  `navbar__link ${isActive ? 'navbar__link--active' : ''}`
-                }
-              >
-                <Icon size={16} />
-                {label}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
-
-        {/* Right side: user + sign out */}
-        <div className="navbar__actions">
-          <span className="navbar__user">👨‍🌾 {name}</span>
-          <button
-            id="btn-signout"
-            onClick={handleSignOut}
-            className="navbar__signout"
-            title="Sign out"
-          >
-            <LogOut size={16} />
-            <span className="navbar__signout-label">Sign out</span>
-          </button>
+          <div className="sidebar__search">
+            <Search size={16} className="sidebar__search-icon" />
+            <input type="text" placeholder="Search" className="sidebar__search-input" />
+            <span className="sidebar__search-shortcut">⌘K</span>
+          </div>
         </div>
 
-        {/* Mobile hamburger */}
-        <button
-          id="btn-menu-toggle"
-          className="navbar__hamburger"
-          onClick={() => setOpen((o) => !o)}
-          aria-label="Toggle menu"
-        >
-          {open ? <X size={22} /> : <Menu size={22} />}
-        </button>
-      </div>
-
-      {/* Mobile dropdown */}
-      {open && (
-        <div className="navbar__mobile">
+        <nav className="sidebar__nav">
           {navItems.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               end={to === '/'}
               className={({ isActive }) =>
-                `navbar__mobile-link ${isActive ? 'navbar__mobile-link--active' : ''}`
+                `sidebar__link ${isActive ? 'sidebar__link--active' : ''}`
               }
-              onClick={() => setOpen(false)}
             >
-              <Icon size={18} />
-              {label}
+              <Icon size={18} className="sidebar__icon" />
+              <span className="sidebar__link-text">{label}</span>
             </NavLink>
           ))}
-          <button onClick={handleSignOut} className="navbar__mobile-signout">
-            <LogOut size={18} />
-            Sign out
-          </button>
+        </nav>
+
+        <div className="sidebar__footer">
+          <nav className="sidebar__bottom-nav">
+            {bottomNavItems.map(({ to, label, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  `sidebar__link ${isActive ? 'sidebar__link--active' : ''}`
+                }
+              >
+                <Icon size={18} className="sidebar__icon" />
+                <span className="sidebar__link-text">{label}</span>
+              </NavLink>
+            ))}
+          </nav>
+          
+          <div className="sidebar__promo">
+            <div className="sidebar__promo-header">
+              <span className="sidebar__promo-title">New model live!</span>
+              <X size={14} className="sidebar__promo-close" />
+            </div>
+            <p className="sidebar__promo-desc">
+              PaddyScan CNN v2 is now active for more accurate maturity detection.
+            </p>
+            <div className="sidebar__promo-image">
+              <img src="/dashboard-bg.png" alt="Promo video thumbnail" />
+              <div className="sidebar__promo-play">
+                <PlayCircle size={24} fill="white" color="var(--clr-primary-700)" />
+              </div>
+            </div>
+            <div className="sidebar__promo-actions">
+              <button className="sidebar__promo-btn muted">Dismiss</button>
+              <button className="sidebar__promo-btn primary">What's new?</button>
+            </div>
+          </div>
+
+          <div className="sidebar__user" onClick={() => {
+            supabase.auth.signOut();
+            navigate('/auth');
+          }}>
+            <img src={`https://ui-avatars.com/api/?name=${name}&background=random`} alt="Avatar" className="sidebar__avatar-img" />
+            <div className="sidebar__user-info">
+              <span className="sidebar__user-name">{name}</span>
+              <span className="sidebar__user-email">{email}</span>
+            </div>
+            <LogOut size={16} className="sidebar__user-logout" />
+          </div>
         </div>
-      )}
-    </nav>
+      </aside>
+
+      <nav className="navbar-mobile">
+        <NavLink to="/" className="navbar-mobile__logo" onClick={() => setOpen(false)}>
+          <div className="sidebar__logo-dot"></div>
+          <span>PaddyScan</span>
+        </NavLink>
+        <button
+          className="navbar-mobile__toggle"
+          onClick={() => setOpen((o) => !o)}
+          aria-label="Toggle menu"
+        >
+          {open ? <X size={24} /> : <Menu size={24} />}
+        </button>
+
+        {open && (
+          <div className="navbar-mobile__menu">
+            {navItems.map(({ to, label, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === '/'}
+                className={({ isActive }) =>
+                  `sidebar__link ${isActive ? 'sidebar__link--active' : ''}`
+                }
+                onClick={() => setOpen(false)}
+              >
+                <Icon size={18} className="sidebar__icon" />
+                {label}
+              </NavLink>
+            ))}
+          </div>
+        )}
+      </nav>
+    </>
   )
 }
+

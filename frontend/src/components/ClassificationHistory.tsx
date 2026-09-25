@@ -94,7 +94,7 @@ export default function ClassificationHistory() {
   if (error) {
     return (
       <div className="history__error">
-        <p>⚠ Failed to load history: {error}</p>
+        <p>Failed to load history: {error}</p>
         <button
           id="btn-retry-history"
           onClick={() => fetchHistory(page)}
@@ -110,7 +110,7 @@ export default function ClassificationHistory() {
   if (items.length === 0) {
     return (
       <div className="history__empty">
-        <div className="history__empty-icon">🌾</div>
+        <div className="history__empty-icon"><Clock size={24} className="muted" /></div>
         <h3>No scans yet</h3>
         <p>Upload a paddy rice photo on the Classify page to get started.</p>
       </div>
@@ -148,7 +148,7 @@ export default function ClassificationHistory() {
                         className="history__thumb"
                       />
                     ) : (
-                      <div className="history__thumb-placeholder">🌾</div>
+                      <div className="history__thumb-placeholder"><Clock size={16} /></div>
                     )}
                   </td>
 
@@ -162,7 +162,7 @@ export default function ClassificationHistory() {
                         borderColor:     cfg.borderColor,
                       }}
                     >
-                      {cfg.emoji} {item.label}
+                      {item.label}
                     </span>
                   </td>
 
