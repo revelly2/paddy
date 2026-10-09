@@ -63,9 +63,11 @@ logger = logging.getLogger("paddy.api")
 # Environment
 # ---------------------------------------------------------------------------
 STORAGE_BUCKET  = os.getenv("STORAGE_BUCKET", "rice-images")
-ALLOWED_ORIGINS = os.getenv(
-    "ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:5174,http://localhost:3000"
+raw_origins = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:5173,http://localhost:5174,http://localhost:3000,https://paddy-orpin.vercel.app",
 ).split(",")
+ALLOWED_ORIGINS = [o.strip().rstrip("/") for o in raw_origins if o.strip()]
 
 # Max upload size: 10 MB
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
@@ -109,6 +111,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

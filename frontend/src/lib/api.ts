@@ -113,20 +113,35 @@ async function apiFetch<T>(
   options: RequestInit = {},
 ): Promise<T> {
   const authHeaders = await getAuthHeader()
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      ...authHeaders,
-      ...(options.headers ?? {}),
-    },
-  })
+  try {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        ...authHeaders,
+        ...(options.headers ?? {}),
+      },
+    })
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }))
-    throw new Error((err as { detail?: string }).detail ?? `HTTP ${res.status}`)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }))
+      throw new Error((err as { detail?: string }).detail ?? `HTTP ${res.status}`)
+    }
+
+    return res.json() as Promise<T>
+  } catch (err: any) {
+    if (err instanceof TypeError && err.message.toLowerCase().includes('fetch')) {
+      if (!BASE_URL || BASE_URL.includes('localhost')) {
+        throw new Error(
+          'Cannot reach backend server. Please configure VITE_API_BASE_URL in your Vercel project environment variables with your live backend URL.'
+        )
+      } else {
+        throw new Error(
+          `Unable to connect to backend at ${BASE_URL}. The server may be asleep or unreachable.`
+        )
+      }
+    }
+    throw err
   }
-
-  return res.json() as Promise<T>
 }
 
 // ---------------------------------------------------------------------------
@@ -154,18 +169,33 @@ export async function classifyImage(
 
   // Don't set Content-Type manually — browser sets it with the correct
   // multipart boundary when using FormData.
-  const res = await fetch(`${BASE_URL}/api/classify`, {
-    method:  'POST',
-    headers: authHeaders,
-    body:    formData,
-  })
+  try {
+    const res = await fetch(`${BASE_URL}/api/classify`, {
+      method:  'POST',
+      headers: authHeaders,
+      body:    formData,
+    })
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }))
-    throw new Error((err as { detail?: string }).detail ?? `HTTP ${res.status}`)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }))
+      throw new Error((err as { detail?: string }).detail ?? `HTTP ${res.status}`)
+    }
+
+    return res.json() as Promise<ClassificationResult>
+  } catch (err: any) {
+    if (err instanceof TypeError && err.message.toLowerCase().includes('fetch')) {
+      if (!BASE_URL || BASE_URL.includes('localhost')) {
+        throw new Error(
+          'Cannot reach backend server. In production on Vercel, please set VITE_API_BASE_URL to your live backend URL in Vercel project settings.'
+        )
+      } else {
+        throw new Error(
+          `Unable to connect to backend at ${BASE_URL}. If hosted on Render (free tier), it may need 30-60 seconds to wake up from sleep.`
+        )
+      }
+    }
+    throw err
   }
-
-  return res.json() as Promise<ClassificationResult>
 }
 
 /**
