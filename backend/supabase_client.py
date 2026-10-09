@@ -48,7 +48,10 @@ def get_supabase_client() -> Client:
     Suitable for reads that go through Row Level Security.
     """
     _validate_env()
-    return create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+    global supabase_client
+    if supabase_client is None:
+        supabase_client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+    return supabase_client
 
 
 def get_supabase_admin() -> Client:
@@ -57,7 +60,10 @@ def get_supabase_admin() -> Client:
     Bypasses RLS — use only in secure server-side code.
     """
     _validate_env()
-    return create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    global supabase_admin
+    if supabase_admin is None:
+        supabase_admin = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    return supabase_admin
 
 
 # ---------------------------------------------------------------------------

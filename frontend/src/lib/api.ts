@@ -76,6 +76,19 @@ export interface HealthResponse {
   timestamp:    string
 }
 
+export interface NewsItem {
+  title: string
+  link: string
+  description: string
+  pubDate: string
+  image_url: string | null
+}
+
+export interface NewsResponse {
+  status: string
+  items: NewsItem[]
+}
+
 export type MaturityLabel = 'Immature' | 'Nearly Mature' | 'Ready for Harvest'
 
 // ---------------------------------------------------------------------------
@@ -89,10 +102,10 @@ const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || ''
  * Returns null if the user is not logged in.
  */
 async function getAuthHeader(): Promise<Record<string, string>> {
-  // const { data } = await supabase.auth.getSession()
-  // const token = data.session?.access_token
-  // if (!token) throw new Error('Not authenticated. Please log in.')
-  return { Authorization: `Bearer fake-token` }
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token
+  if (!token) throw new Error('Not authenticated. Please log in.')
+  return { Authorization: `Bearer ${token}` }
 }
 
 async function apiFetch<T>(
@@ -198,6 +211,13 @@ export async function getUserStats(): Promise<StatsResponse> {
 export async function healthCheck(): Promise<HealthResponse> {
   const res = await fetch(`${BASE_URL}/health`)
   return res.json() as Promise<HealthResponse>
+}
+
+/**
+ * Fetch agricultural news from the backend.
+ */
+export async function getAgNews(): Promise<NewsResponse> {
+  return apiFetch<NewsResponse>('/api/news')
 }
 
 // ---------------------------------------------------------------------------

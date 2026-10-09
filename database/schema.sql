@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     region      TEXT,           -- Philippine region (e.g., "Region II - Cagayan Valley")
     farm_name   TEXT,           -- Optional farm label
     avatar_url  TEXT,           -- URL to profile picture in Supabase Storage
+    role        TEXT NOT NULL DEFAULT 'user', -- Role for RBAC (e.g., 'user', 'admin')
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

@@ -35,9 +35,12 @@ import traceback
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional
+import urllib.request
+import xml.etree.ElementTree as ET
 
+import os
 from dotenv import load_dotenv
-load_dotenv()  # Load .env BEFORE importing modules that read env vars
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))  # Load .env BEFORE importing modules that read env vars
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Header, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -176,8 +179,21 @@ class HealthResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # Auth dependency — decode Supabase JWT to get user_id
 # ---------------------------------------------------------------------------
-async def get_current_user_id(authorization: str = Header("Bearer fake-token")) -> str:
-    return "00000000-0000-0000-0000-000000000000"
+async def get_current_user_id(authorization: str = Header(None)) -> str:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
+    
+    token = authorization.split(" ")[1]
+    admin = get_supabase_admin()
+    
+    try:
+        user_response = admin.auth.get_user(token)
+        if user_response and user_response.user:
+            return user_response.user.id
+        raise HTTPException(status_code=401, detail="Invalid token")
+    except Exception as e:
+        logger.error(f"Failed to decode token: {e}")
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 
 # ---------------------------------------------------------------------------
@@ -366,8 +382,9 @@ async def list_classifications(
             .execute()
         )
     except Exception as e:
-        logger.error("DB query error: %s", e)
-        raise HTTPException(status_code=500, detail="Failed to retrieve classifications.")
+        import traceback
+        logger.error("DB query error: %s\n%s", e, traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve classifications: {type(e).__name__} - {str(e)}")
 
     items = [
         ClassificationResponse(
@@ -515,3 +532,70 @@ async def get_stats(user_id: str = Depends(get_current_user_id)):
         avg_confidence_pct=float(row.get("avg_confidence_pct") or 0),
         last_scan_at=row.get("last_scan_at"),
     )
+
+
+class NewsItem(BaseModel):
+    title: str
+    link: str
+    description: str
+    pubDate: str
+    image_url: Optional[str] = None
+
+
+class NewsResponse(BaseModel):
+    status: str
+    items: list[NewsItem]
+
+
+@app.get("/api/news", response_model=NewsResponse, tags=["News"])
+async def get_ag_news():
+    """
+    Fetch the latest agricultural news from AgWeb RSS feed.
+    """
+    url = 'https://www.agweb.com/index.rss'
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+    }
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        response = urllib.request.urlopen(req, timeout=10)
+        content = response.read().decode('utf-8')
+        
+        root = ET.fromstring(content)
+        items = []
+        for item in root.findall('.//item'):
+            title = item.find('title')
+            link = item.find('link')
+            desc = item.find('description')
+            pub_date = item.find('pubDate')
+            
+            title_text = title.text if title is not None else ""
+            link_text = link.text if link is not None else ""
+            desc_text = desc.text if desc is not None else ""
+            pub_date_text = pub_date.text if pub_date is not None else ""
+            
+            # Clean HTML tags from description
+            import re
+            desc_clean = re.sub(r'<[^>]+>', '', desc_text).strip()
+            
+            # Find image using media:content namespace
+            image_url = None
+            media_content = item.find('{http://search.yahoo.com/mrss/}content')
+            if media_content is not None and media_content.get('url'):
+                image_url = media_content.get('url')
+            
+            if title_text and link_text:
+                items.append(NewsItem(
+                    title=title_text,
+                    link=link_text,
+                    description=desc_clean,
+                    pubDate=pub_date_text,
+                    image_url=image_url
+                ))
+        
+        return NewsResponse(status="ok", items=items)
+    except Exception as e:
+        logger.error("Failed to fetch news: %s", e)
+        raise HTTPException(status_code=500, detail="Failed to fetch agricultural news.")

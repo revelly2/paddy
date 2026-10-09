@@ -17,6 +17,8 @@ import HomePage from './pages/HomePage'
 import ClassifyPage from './pages/ClassifyPage'
 import HistoryPage from './pages/HistoryPage'
 import AuthPage from './pages/AuthPage'
+import SupportPage from './pages/SupportPage'
+import SettingsPage from './pages/SettingsPage'
 
 // ---------------------------------------------------------------------------
 // Offline banner — shown whenever the browser loses internet connectivity.
@@ -72,7 +74,7 @@ interface ProtectedRouteProps {
 }
 
 function ProtectedRoute({ session, children }: ProtectedRouteProps) {
-  // if (!session) return <Navigate to="/auth" replace />
+  if (!session) return <Navigate to="/auth" replace />
   return children
 }
 
@@ -80,28 +82,37 @@ function ProtectedRoute({ session, children }: ProtectedRouteProps) {
 // App
 // ---------------------------------------------------------------------------
 export default function App() {
-  const [session, setSession]   = useState<Session | null>({
-    user: { id: 'guest', email: 'guest@paddyscan.com' }
-  } as any)
-  const [loading, setLoading]   = useState(false)
+  const [session, setSession]   = useState<Session | null>(null)
+  const [isAdmin, setIsAdmin]   = useState(false)
+  const [loading, setLoading]   = useState(true)
 
-  const handleAuthChange = useCallback((newSession: Session | null) => {
-    // setSession(newSession)
-    // setLoading(false)
+  const handleAuthChange = useCallback(async (newSession: Session | null) => {
+    setSession(newSession)
+    if (newSession) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', newSession.user.id)
+        .single()
+      setIsAdmin(data?.role === 'admin')
+    } else {
+      setIsAdmin(false)
+    }
+    setLoading(false)
   }, [])
 
   useEffect(() => {
     // Get existing session on mount
-    // supabase.auth.getSession().then(({ data }) => {
-    //   handleAuthChange(data.session)
-    // })
+    supabase.auth.getSession().then(({ data }) => {
+      handleAuthChange(data.session)
+    })
 
     // Listen for sign-in / sign-out events
-    // const { data: { subscription } } = supabase.auth.onAuthStateChange(
-    //   (_event, newSession) => handleAuthChange(newSession)
-    // )
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => handleAuthChange(newSession)
+    )
 
-    // return () => subscription.unsubscribe()
+    return () => subscription.unsubscribe()
   }, [handleAuthChange])
 
   if (loading) {
@@ -131,7 +142,7 @@ export default function App() {
               path="/"
               element={
                 <ProtectedRoute session={session}>
-                  <HomePage session={session!} />
+                  <HomePage session={session!} isAdmin={isAdmin} />
                 </ProtectedRoute>
               }
             />
@@ -148,6 +159,22 @@ export default function App() {
               element={
                 <ProtectedRoute session={session}>
                   <HistoryPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/support"
+              element={
+                <ProtectedRoute session={session}>
+                  <SupportPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute session={session}>
+                  <SettingsPage session={session!} isAdmin={isAdmin} />
                 </ProtectedRoute>
               }
             />
