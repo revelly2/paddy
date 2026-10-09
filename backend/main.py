@@ -42,7 +42,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))  # Load .env BEFORE importing modules that read env vars
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Header, Query
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Header, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -115,7 +115,29 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Ensure all unhandled 500 exceptions still return CORS headers so browsers
+    can read the actual error message instead of failing with 'Failed to fetch'.
+    """
+    logger.error("Unhandled exception: %s\n%s", exc, traceback.format_exc())
+    origin = request.headers.get("origin", "")
+    headers = {}
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        headers["Access-Control-Allow-Headers"] = "*"
+        headers["Access-Control-Allow-Methods"] = "*"
+
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Backend Error: {str(exc)}"},
+        headers=headers,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -173,10 +195,12 @@ class StatsResponse(BaseModel):
 
 
 class HealthResponse(BaseModel):
-    status:        str
-    model_loaded:  bool
-    supabase_url:  str
-    timestamp:     str
+    status:                str
+    model_loaded:          bool
+    supabase_url:          str
+    supabase_admin_ready:  bool = False
+    error:                 Optional[str] = None
+    timestamp:             str
 
 
 # ---------------------------------------------------------------------------
@@ -187,16 +211,26 @@ async def get_current_user_id(authorization: str = Header(None)) -> str:
         raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
     
     token = authorization.split(" ")[1]
-    admin = get_supabase_admin()
     
+    try:
+        admin = get_supabase_admin()
+    except Exception as e:
+        logger.error(f"Failed to get Supabase admin client: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database configuration error: {str(e)}. Please check SUPABASE_SERVICE_KEY in hosting environment variables."
+        )
+
     try:
         user_response = admin.auth.get_user(token)
         if user_response and user_response.user:
             return user_response.user.id
         raise HTTPException(status_code=401, detail="Invalid token")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to decode token: {e}")
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(status_code=401, detail=f"Invalid or expired token: {str(e)}")
 
 
 # ---------------------------------------------------------------------------
@@ -209,10 +243,20 @@ async def health_check():
     Returns API health status: model readiness and Supabase connectivity.
     No authentication required — useful for monitoring.
     """
+    admin_ready = False
+    admin_error = None
+    try:
+        get_supabase_admin()
+        admin_ready = True
+    except Exception as e:
+        admin_error = str(e)
+
     return HealthResponse(
-        status="ok",
+        status="ok" if (classifier.ready and admin_ready) else "degraded",
         model_loaded=classifier.ready,
         supabase_url=SUPABASE_URL,
+        supabase_admin_ready=admin_ready,
+        error=admin_error,
         timestamp=datetime.utcnow().isoformat(),
     )
 
@@ -600,5 +644,16 @@ async def get_ag_news():
         
         return NewsResponse(status="ok", items=items)
     except Exception as e:
-        logger.error("Failed to fetch news: %s", e)
-        raise HTTPException(status_code=500, detail="Failed to fetch agricultural news.")
+        logger.warning("Failed to fetch RSS news: %s. Returning fallback.", e)
+        return NewsResponse(
+            status="ok",
+            items=[
+                NewsItem(
+                    title="Best Management Practices for Rice Harvesting",
+                    link="https://www.irri.org",
+                    description="Optimizing paddy harvest time minimizes yield losses and ensures high milling quality and grain recovery.",
+                    pubDate="Notice",
+                    image_url=None
+                )
+            ]
+        )
