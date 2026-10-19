@@ -139,27 +139,26 @@ const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || ''
 
 /**
  * Get the current user's Supabase JWT for Authorization headers.
- * Returns null if the user is not logged in.
+ * Automatically refreshes the session if expiring soon or if forced.
  */
-async function getAuthHeader(): Promise<Record<string, string>> {
-  const { data } = await supabase.auth.getSession()
-  let session = data.session
-  if (!session) throw new Error('Not authenticated. Please log in.')
+async function getAuthHeader(forceRefresh = false): Promise<Record<string, string>> {
+  let session = (await supabase.auth.getSession()).data.session
 
-  // Proactively refresh the access token if it has expired or will expire in <60 seconds
   const nowInSec = Math.floor(Date.now() / 1000)
-  if (session.expires_at && session.expires_at <= nowInSec + 60) {
+  const isExpiringSoon = session?.expires_at ? session.expires_at <= nowInSec + 120 : false
+
+  if (forceRefresh || !session?.access_token || isExpiringSoon) {
     try {
       const { data: refreshed, error } = await supabase.auth.refreshSession()
-      if (!error && refreshed.session) {
+      if (!error && refreshed?.session) {
         session = refreshed.session
       }
     } catch {
-      // If refresh fails due to network, proceed with the existing token
+      // Proceed with existing session if refresh fails
     }
   }
 
-  const token = session.access_token
+  const token = session?.access_token
   if (!token) throw new Error('Not authenticated. Please log in.')
   return { Authorization: `Bearer ${token}` }
 }
@@ -168,20 +167,33 @@ async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const authHeaders = await getAuthHeader()
-  try {
-    const res = await fetch(`${BASE_URL}${path}`, {
+  let authHeaders = await getAuthHeader()
+  const doFetch = (headers: Record<string, string>) =>
+    fetch(`${BASE_URL}${path}`, {
       ...options,
       headers: {
-        ...authHeaders,
+        ...headers,
         ...(options.headers ?? {}),
       },
     })
 
+  try {
+    let res = await doFetch(authHeaders)
+
+    // Proactively handle expired sessions: refresh Supabase token and retry once
+    if (res.status === 401) {
+      try {
+        const freshHeaders = await getAuthHeader(true)
+        res = await doFetch(freshHeaders)
+      } catch {
+        // Fall through to error response handling
+      }
+    }
+
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: res.statusText }))
       const detail = (err as { detail?: string }).detail
-      if (res.status === 401 && detail?.toLowerCase().includes('expired')) {
+      if (res.status === 401) {
         throw new Error('Your session has expired. Please sign out and log back in.')
       }
       throw new Error(detail ?? `HTTP ${res.status}`)
@@ -220,29 +232,43 @@ export async function classifyImage(
   notes?:   string,
   location?: string,
 ): Promise<ClassificationResult> {
-  const authHeaders = await getAuthHeader()
+  let authHeaders = await getAuthHeader()
 
   const formData = new FormData()
   formData.append('file', file)
   if (notes)    formData.append('notes',    notes)
   if (location) formData.append('location', location)
 
+  const url = location
+    ? `${BASE_URL}/api/classify?location=${encodeURIComponent(location)}`
+    : `${BASE_URL}/api/classify`
+
+  const doUpload = (headers: Record<string, string>) =>
+    fetch(url, {
+      method:  'POST',
+      headers: headers,
+      body:    formData,
+    })
+
   // Don't set Content-Type manually — browser sets it with the correct
   // multipart boundary when using FormData.
   try {
-    const url = location
-      ? `${BASE_URL}/api/classify?location=${encodeURIComponent(location)}`
-      : `${BASE_URL}/api/classify`
-    const res = await fetch(url, {
-      method:  'POST',
-      headers: authHeaders,
-      body:    formData,
-    })
+    let res = await doUpload(authHeaders)
+
+    // Proactively handle expired sessions: refresh Supabase token and retry upload once
+    if (res.status === 401) {
+      try {
+        const freshHeaders = await getAuthHeader(true)
+        res = await doUpload(freshHeaders)
+      } catch {
+        // Fall through to error response handling
+      }
+    }
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: res.statusText }))
       const detail = (err as { detail?: string }).detail
-      if (res.status === 401 && detail?.toLowerCase().includes('expired')) {
+      if (res.status === 401) {
         throw new Error('Your session has expired. Please sign out and log back in.')
       }
       throw new Error(detail ?? `HTTP ${res.status}`)

@@ -223,12 +223,13 @@ async def get_current_user_id(authorization: str = Header(None)) -> str:
                 SUPABASE_JWT_SECRET,
                 algorithms=["HS256"],
                 audience="authenticated",
+                leeway=120,  # Allow 2 minutes clock skew between server and client
             )
             user_id = payload.get("sub")
             if user_id:
                 return user_id
         except jwt.ExpiredSignatureError:
-            raise HTTPException(status_code=401, detail="Your session has expired. Please log in again.")
+            logger.info("Local JWT signature expired, attempting Supabase admin.auth.get_user verification")
         except jwt.InvalidTokenError as e:
             logger.warning(f"Local JWT secret check failed: {e}; falling back to Supabase auth client.")
 
@@ -261,7 +262,7 @@ async def get_current_user_id(authorization: str = Header(None)) -> str:
         is_timeout = any(term in err_msg.lower() for term in ["timed out", "timeout", "connecterror", "readerror", "connection refused"])
         if is_timeout:
             try:
-                payload = jwt.decode(token, options={"verify_signature": False, "verify_exp": True})
+                payload = jwt.decode(token, options={"verify_signature": False, "verify_exp": True}, leeway=120)
                 user_id = payload.get("sub")
                 role = payload.get("role")
                 if user_id and role in ("authenticated", "anon", "service_role"):
