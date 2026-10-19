@@ -28,10 +28,10 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Read environment variables
 # ---------------------------------------------------------------------------
-SUPABASE_URL         = os.getenv("SUPABASE_URL", "")
-SUPABASE_ANON_KEY    = os.getenv("SUPABASE_ANON_KEY", "")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
-SUPABASE_JWT_SECRET  = os.getenv("SUPABASE_JWT_SECRET", "")
+SUPABASE_URL         = (os.getenv("SUPABASE_URL") or "").strip()
+SUPABASE_ANON_KEY    = (os.getenv("SUPABASE_ANON_KEY") or "").strip()
+SUPABASE_SERVICE_KEY = (os.getenv("SUPABASE_SERVICE_KEY") or "").strip()
+SUPABASE_JWT_SECRET  = (os.getenv("SUPABASE_JWT_SECRET") or "").strip()
 
 
 def _validate_env() -> None:

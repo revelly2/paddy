@@ -258,7 +258,7 @@ class PaddyClassifier:
         return cls._instance
 
     def load(self, model_path: str = None) -> None:
-        api_key = os.getenv("ROBOFLOW_API_KEY", "")
+        api_key = (os.getenv("ROBOFLOW_API_KEY") or "").strip()
         if not api_key or api_key == "your_roboflow_api_key_here":
             logger.warning(
                 "ROBOFLOW_API_KEY is not configured. "

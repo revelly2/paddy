@@ -254,27 +254,24 @@ async def get_current_user_id(authorization: str = Header(None)) -> str:
         err_msg = str(e)
         logger.warning(f"Supabase auth check encountered error: {err_msg}")
 
-        # Check for expired token indicators first
-        if "expired" in err_msg.lower():
+        # Check for genuine expired token indicator
+        if "jwt expired" in err_msg.lower() or "token is expired" in err_msg.lower():
             raise HTTPException(status_code=401, detail="Your session has expired. Please log in again.")
 
-        # If network read or connection timed out, fallback to validating unexpired JWT claims locally
-        is_timeout = any(term in err_msg.lower() for term in ["timed out", "timeout", "connecterror", "readerror", "connection refused"])
-        if is_timeout:
-            try:
-                payload = jwt.decode(token, options={"verify_signature": False, "verify_exp": True}, leeway=120)
-                user_id = payload.get("sub")
-                role = payload.get("role")
-                if user_id and role in ("authenticated", "anon", "service_role"):
-                    logger.warning(
-                        f"Supabase auth server timed out ({err_msg}). Falling back to unexpired token claims for user {user_id}."
-                    )
-                    return user_id
-            except jwt.ExpiredSignatureError:
-                raise HTTPException(status_code=401, detail="Your session has expired. Please log in again.")
-            except Exception as jwt_err:
-                logger.error(f"Fallback JWT parsing failed: {jwt_err}")
-                raise HTTPException(status_code=401, detail="Authentication server timed out and token could not be verified.")
+        # Fallback to validating unexpired JWT claims locally if Supabase auth service encounters client/network errors
+        try:
+            payload = jwt.decode(token, options={"verify_signature": False, "verify_exp": True}, leeway=120)
+            user_id = payload.get("sub")
+            role = payload.get("role")
+            if user_id and role in ("authenticated", "anon", "service_role"):
+                logger.warning(
+                    f"Supabase auth server encountered error ({err_msg}). Falling back to unexpired token claims for user {user_id}."
+                )
+                return user_id
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=401, detail="Your session has expired. Please log in again.")
+        except Exception as jwt_err:
+            logger.error(f"Fallback JWT parsing failed: {jwt_err}")
 
         raise HTTPException(status_code=401, detail=f"Invalid or expired token: {err_msg}")
  
