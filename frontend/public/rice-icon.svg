@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <defs>
+    <linearGradient id="riceGrad" x1="8" y1="8" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#16a34a"/>
+      <stop offset="100%" stop-color="#15803d"/>
+    </linearGradient>
+    <linearGradient id="grainGrad" x1="16" y1="12" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="12" fill="#f0fdf4"/>
+  <rect width="48" height="48" rx="12" stroke="#bbf7d0" stroke-width="1.5"/>
+  <!-- Leaf Stem -->
+  <path d="M12 36C18 34 26 28 30 14" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Panicle grains minimalist -->
+  <path d="M30 14C34 16 36 21 33 24C30 22 28 17 30 14Z" fill="url(#grainGrad)"/>
+  <path d="M26 20C30 22 31 27 28 30C25 28 24 23 26 20Z" fill="url(#grainGrad)"/>
+  <path d="M22 26C26 27 26 33 23 35C21 33 20 29 22 26Z" fill="url(#grainGrad)"/>
+  <!-- Complementary young leaf -->
+  <path d="M16 32C15 25 18 20 22 18C21 24 19 29 16 32Z" fill="#22c55e" opacity="0.85"/>
+</svg>

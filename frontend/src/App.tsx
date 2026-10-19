@@ -19,6 +19,8 @@ import HistoryPage from './pages/HistoryPage'
 import AuthPage from './pages/AuthPage'
 import SupportPage from './pages/SupportPage'
 import SettingsPage from './pages/SettingsPage'
+import UsersManagementPage from './pages/UsersManagementPage'
+import ContentManagementPage from './pages/ContentManagementPage'
 
 // ---------------------------------------------------------------------------
 // Offline banner — shown whenever the browser loses internet connectivity.
@@ -89,12 +91,23 @@ export default function App() {
   const handleAuthChange = useCallback(async (newSession: Session | null) => {
     setSession(newSession)
     if (newSession) {
-      const { data } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', newSession.user.id)
-        .single()
-      setIsAdmin(data?.role === 'admin')
+      const userRole =
+        newSession.user.user_metadata?.role ||
+        (newSession.user as any)?.app_metadata?.role
+
+      let profileRole: string | undefined
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', newSession.user.id)
+          .maybeSingle()
+        profileRole = (data as any)?.role
+      } catch {
+        // Fallback if role column is absent in profiles table
+      }
+
+      setIsAdmin(userRole === 'admin' || profileRole === 'admin')
     } else {
       setIsAdmin(false)
     }
@@ -127,9 +140,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <OfflineBanner />
-      <div className="app-shell">
-        {session && <NavBar session={session} />}
-        <main className="app-content">
+      <div className={`app-shell ${!session ? 'app-shell--no-nav' : ''}`}>
+        {session && <NavBar session={session} isAdmin={isAdmin} />}
+        <main className={`app-content ${!session ? 'app-content--no-nav' : ''}`}>
           <Routes>
             {/* Public route */}
             <Route
@@ -175,6 +188,24 @@ export default function App() {
               element={
                 <ProtectedRoute session={session}>
                   <SettingsPage session={session!} isAdmin={isAdmin} />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Admin Management routes */}
+            <Route
+              path="/admin/users"
+              element={
+                <ProtectedRoute session={session}>
+                  {isAdmin ? <UsersManagementPage session={session!} isAdmin={isAdmin} /> : <Navigate to="/" replace />}
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/content"
+              element={
+                <ProtectedRoute session={session}>
+                  {isAdmin ? <ContentManagementPage session={session!} isAdmin={isAdmin} /> : <Navigate to="/" replace />}
                 </ProtectedRoute>
               }
             />

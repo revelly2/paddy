@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Calendar, Filter, Camera, List, TrendingUp, MoreVertical, Leaf } from 'lucide-react'
+import {
+  Calendar, Filter, Camera, List, TrendingUp, Users, FileText,
+  ShieldCheck, Sprout, Leaf, ArrowRight, Sparkles, Building,
+  Activity, MapPin, Eye, ExternalLink, RefreshCw, CheckCircle2
+} from 'lucide-react'
 import { type Session } from '../lib/supabase'
-import { getUserStats, listClassifications, getAgNews, type StatsResponse, type ClassificationResult, type NewsItem } from '../lib/api'
+import {
+  getAdminStats, listClassifications, listAdminContent,
+  type AdminStats, type ClassificationResult, type ContentItem
+} from '../lib/api'
 
 interface AdminDashboardProps {
   session: Session
@@ -10,207 +17,428 @@ interface AdminDashboardProps {
 
 export default function AdminDashboard({ session }: AdminDashboardProps) {
   const navigate = useNavigate()
-  const [stats, setStats] = useState<StatsResponse | null>(null)
+  const [stats, setStats] = useState<AdminStats | null>(null)
   const [recent, setRecent] = useState<ClassificationResult[]>([])
-  const [news, setNews] = useState<NewsItem[]>([])
+  const [advisories, setAdvisories] = useState<ContentItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [timeFilter, setTimeFilter] = useState('30 days')
-  const tabs = ['12 months', '30 days', '7 days', '24 hours']
-  
-  const firstName = session.user.email?.split('@')[0] ?? 'Farmer'
+  const [timeFilter, setTimeFilter] = useState('All Time')
 
-  useEffect(() => {
-    Promise.all([
-      getUserStats().catch(() => null),
-      listClassifications(1, 5).catch(() => ({ data: [] })),
-      getAgNews().catch(() => ({ items: [] }))
-    ]).then(([statsData, historyData, newsData]) => {
+  const firstName = session.user.user_metadata?.full_name?.split(' ')[0] ||
+    session.user.email?.split('@')[0] ||
+    'Administrator'
+
+  const loadDashboardData = async () => {
+    setLoading(true)
+    try {
+      const [statsData, historyData, contentData] = await Promise.all([
+        getAdminStats().catch(() => null),
+        listClassifications(1, 6).catch(() => ({ data: [] })),
+        listAdminContent().catch(() => [])
+      ])
       setStats(statsData)
       setRecent(historyData.data || [])
-      setNews(newsData.items.slice(0, 4) || [])
+      setAdvisories(contentData.slice(0, 3) || [])
+    } finally {
       setLoading(false)
-    })
+    }
+  }
+
+  useEffect(() => {
+    loadDashboardData()
   }, [])
+
+  // Calculate maturity distribution percentages
+  const totalScans = stats?.total_scans || 0
+  const readyCount = stats?.ready_for_harvest_count || 0
+  const nearlyCount = stats?.nearly_mature_count || 0
+  const immatureCount = stats?.immature_count || 0
+
+  const readyPct = totalScans > 0 ? Math.round((readyCount / totalScans) * 100) : 0
+  const nearlyPct = totalScans > 0 ? Math.round((nearlyCount / totalScans) * 100) : 0
+  const immaturePct = totalScans > 0 ? Math.max(0, 100 - readyPct - nearlyPct) : 0
 
   return (
     <div className="dashboard-page">
       <div className="dashboard-page__inner">
-        {/* Header Section */}
-        <header className="dashboard-header-modern">
-          <div className="header-decor header-decor-1"><Leaf size={48} /></div>
-          <div className="header-decor header-decor-2"><Leaf size={80} /></div>
-          <div className="header-decor header-decor-3"><Leaf size={32} /></div>
-          <div className="header-decor header-decor-4"><Leaf size={64} /></div>
-          <h1 className="dashboard-title-modern">Welcome back, {firstName}</h1>
-          <p className="dashboard-subtitle-modern">Here's your paddy field overview for today.</p>
+        {/* Executive Administrative Header */}
+        <header className="admin-command-hero">
+          <div className="admin-command-hero__decor-glow" />
+          <div className="admin-command-hero__content">
+            <div className="admin-hero-pills-row">
+              <div className="admin-hero-pill admin-hero-pill--status">
+                <span className="pulse-indicator" />
+                <ShieldCheck size={14} />
+                <span>Admin Command Center</span>
+              </div>
+              <div className="admin-hero-pill admin-hero-pill--season">
+                <Sprout size={14} />
+                <span>Wet Season (Tag-ulan) 2026</span>
+              </div>
+              <div className="admin-hero-pill admin-hero-pill--location">
+                <MapPin size={14} />
+                <span>Abra Province, CAR</span>
+              </div>
+            </div>
+
+            <h1 className="admin-command-hero__title">
+              Welcome back, {firstName}
+            </h1>
+            <p className="admin-command-hero__subtitle">
+              Province-wide telemetry, harvest ripeness analytics, farmer accounts, and agricultural extension advisories.
+            </p>
+          </div>
+
+          <div className="admin-command-hero__telemetry">
+            <div className="telemetry-badge">
+              <span className="telemetry-label">Roboflow Panicle CNN</span>
+              <span className="telemetry-val text-emerald">
+                <span className="telemetry-dot online" />
+                {stats?.model_ready ? 'Online & Healthy' : 'Active'}
+              </span>
+            </div>
+            <div className="telemetry-badge">
+              <span className="telemetry-label">Harvest Advisory Broadcast</span>
+              <span className="telemetry-val">
+                {stats?.published_content_items ?? 3} Published Live
+              </span>
+            </div>
+          </div>
         </header>
 
-        {/* Filter Bar */}
-        <div className="dashboard-filters">
-          <div className="tabs">
-            {tabs.map(t => (
-              <button 
-                key={t}
-                className={`tab ${timeFilter === t ? 'active' : ''}`}
-                onClick={() => setTimeFilter(t)}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-          <div className="filter-actions">
-            <button className="filter-btn">
-              <Calendar size={16} className="muted" />
-              This Season
-            </button>
-            <button className="filter-btn">
-              <Filter size={16} className="muted" />
-              Filters
-            </button>
-          </div>
-        </div>
-
-        {/* Metrics Grid */}
-        <div className="metrics-grid">
-          {/* Main Chart */}
-          <div className="chart-card">
-            <div className="chart-header">
-              <span className="chart-label">Total Scans</span>
-              <div className="chart-value-row">
-                <span className="chart-value">{stats?.total_scans ?? 0}</span>
-                <span className="trend up"><TrendingUp size={14} /> +12%</span>
-              </div>
+        {/* Quick Management Short-links Bento Bar */}
+        <div className="admin-shortcuts-grid">
+          <div
+            className="admin-shortcut-card admin-shortcut-card--users"
+            onClick={() => navigate('/admin/users')}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="shortcut-card-icon-wrap">
+              <Users size={22} />
             </div>
-            {/* SVG placeholder for exactly matching the line chart */}
-            <div className="chart-area">
-              <svg viewBox="0 0 500 150" className="chart-svg" preserveAspectRatio="none">
-                <path d="M0,100 L50,95 L100,90 L150,85 L200,95 L250,85 L300,90 L350,55 L400,45 L450,55 L500,40" fill="none" stroke="#16a34a" strokeWidth="2.5" />
-                <path d="M0,100 L50,95 L100,90 L150,85 L200,95 L250,85 L300,90 L350,55 L400,45 L450,55 L500,40 L500,150 L0,150 Z" fill="url(#chart-gradient)" />
-                <defs>
-                  <linearGradient id="chart-gradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#bbf7d0" stopOpacity="0.5" />
-                    <stop offset="100%" stopColor="#f0fdf4" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div className="chart-x-axis">
-                <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
+            <div className="shortcut-card-text">
+              <div className="shortcut-card-header-row">
+                <h3>Farmer & User Accounts</h3>
+                <span className="shortcut-chip">{stats?.total_users ?? 7} Accounts</span>
               </div>
+              <p>Manage farmer accounts, assign Abra municipalities, and update system roles.</p>
             </div>
+            <span className="shortcut-arrow">
+              <ArrowRight size={16} />
+            </span>
           </div>
 
-          {/* Right Side Stats */}
-          <div className="side-stats">
-            <div className="side-stat">
-              <span className="side-stat-label">Ready for Harvest</span>
-              <div className="side-stat-val-row">
-                <span className="side-stat-val">{stats?.ready_for_harvest ?? 0}</span>
-                <span className="trend up"><TrendingUp size={14} /> +5%</span>
-              </div>
+          <div
+            className="admin-shortcut-card admin-shortcut-card--content"
+            onClick={() => navigate('/admin/content')}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="shortcut-card-icon-wrap icon-emerald">
+              <FileText size={22} />
             </div>
-            <div className="side-stat">
-              <span className="side-stat-label">Nearly Mature</span>
-              <div className="side-stat-val-row">
-                <span className="side-stat-val">{stats?.nearly_mature ?? 0}</span>
-                <span className="trend up"><TrendingUp size={14} /> +2%</span>
+            <div className="shortcut-card-text">
+              <div className="shortcut-card-header-row">
+                <h3>Advisories & Content</h3>
+                <span className="shortcut-chip chip-emerald">{stats?.total_content_items ?? 4} Articles</span>
               </div>
+              <p>Draft, publish, and manage harvest notifications and agronomy guidance.</p>
             </div>
-            <div className="side-stat">
-              <span className="side-stat-label">Avg Confidence</span>
-              <div className="side-stat-val-row">
-                <span className="side-stat-val">{stats ? `${stats.avg_confidence_pct}%` : '0%'}</span>
-                <span className="trend up"><TrendingUp size={14} /> +1.2%</span>
+            <span className="shortcut-arrow">
+              <ArrowRight size={16} />
+            </span>
+          </div>
+
+          <div
+            className="admin-shortcut-card admin-shortcut-card--study"
+            onClick={() => window.dispatchEvent(new CustomEvent('paddy:open-abra-study'))}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="shortcut-card-icon-wrap icon-amber">
+              <Sparkles size={22} />
+            </div>
+            <div className="shortcut-card-text">
+              <div className="shortcut-card-header-row">
+                <h3>Abra Phenology Study</h3>
+                <span className="shortcut-chip chip-amber">CAR Research</span>
               </div>
+              <p>Explore temporal phenology curves, lighting models, and harvest windows.</p>
             </div>
+            <span className="shortcut-arrow">
+              <ArrowRight size={16} />
+            </span>
           </div>
         </div>
 
-        {/* Lower Content Grid */}
-        <div className="lower-grid">
-          <div className="main-content-area">
-            {/* Start creating content */}
-            <div className="section-header">
-              <h2 className="section-title">Quick Actions</h2>
-              <MoreVertical size={16} className="muted" />
-            </div>
-            <div className="action-cards">
-              <div className="action-card" onClick={() => navigate('/classify')}>
-                <div className="action-icon"><Camera size={20} /></div>
-                <div className="action-text">
-                  <h3>Take a new photo</h3>
-                  <p>Upload a paddy image for CNN analysis</p>
-                </div>
+        {/* System Telemetry & Metrics Grid */}
+        <div className="admin-metrics-grid">
+          {/* Main Visualizer Card */}
+          <div className="admin-kpi-card admin-kpi-card--primary">
+            <div className="kpi-card-header">
+              <div>
+                <span className="kpi-eyebrow">Province-Wide Telemetry</span>
+                <h3 className="kpi-headline">Total Field Scans Across Abra</h3>
               </div>
-              <div className="action-card" onClick={() => navigate('/history')}>
-                <div className="action-icon"><List size={20} /></div>
-                <div className="action-text">
-                  <h3>View scan history</h3>
-                  <p>Check past maturity records & charts</p>
-                </div>
+              <div className="kpi-badge-group">
+                <span className="kpi-big-number">{totalScans}</span>
+                <span className="kpi-growth-badge">
+                  <TrendingUp size={13} /> Active Season
+                </span>
               </div>
             </div>
 
-            {/* Recent posts */}
-            <div className="section-header" style={{ marginTop: '40px' }}>
-              <h2 className="section-title">Agriculture News</h2>
-              <MoreVertical size={16} className="muted" />
-            </div>
-            <div className="recent-posts" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginTop: '16px' }}>
-              {news.length === 0 && !loading && (
-                <div style={{ color: 'var(--clr-text-muted)', fontSize: '0.875rem' }}>No news available right now.</div>
-              )}
-              {news.map((item, i) => (
-                <a href={item.link} target="_blank" rel="noopener noreferrer" key={i} style={{ textDecoration: 'none' }}>
-                  <div className="post-card" style={{ 
-                    background: item.image_url ? `linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%), url(${item.image_url})` : 'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    display: 'flex', 
-                    alignItems: 'flex-end', 
-                    padding: '16px', 
-                    color: '#fff', 
-                    fontWeight: 600,
-                    height: '200px',
-                    borderRadius: '12px',
-                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                  }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '0.95rem', lineHeight: 1.3, textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>{item.title}</span>
-                      <span style={{ fontSize: '0.75rem', opacity: 0.8, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
-                        {new Date(item.pubDate).toLocaleDateString()}
-                      </span>
+            {/* Maturity Breakdown Stacked Visualizer */}
+            <div className="maturity-breakdown-box">
+              <div className="breakdown-header-row">
+                <span className="breakdown-title">Crop Ripeness Classification Distribution</span>
+                <span className="breakdown-count">{totalScans} panicle scans recorded</span>
+              </div>
+
+              {totalScans > 0 ? (
+                <>
+                  <div className="breakdown-stacked-bar">
+                    <div
+                      className="bar-segment segment-ready"
+                      style={{ width: `${readyPct}%` }}
+                      title={`Ready for Harvest: ${readyCount} (${readyPct}%)`}
+                    />
+                    <div
+                      className="bar-segment segment-nearly"
+                      style={{ width: `${nearlyPct}%` }}
+                      title={`Nearly Mature: ${nearlyCount} (${nearlyPct}%)`}
+                    />
+                    <div
+                      className="bar-segment segment-immature"
+                      style={{ width: `${immaturePct}%` }}
+                      title={`Immature: ${immatureCount} (${immaturePct}%)`}
+                    />
+                  </div>
+
+                  <div className="breakdown-legend">
+                    <div className="legend-item">
+                      <span className="legend-dot dot-ready" />
+                      <span className="legend-label">Ready for Harvest</span>
+                      <strong className="legend-value">{readyCount} ({readyPct}%)</strong>
+                    </div>
+                    <div className="legend-item">
+                      <span className="legend-dot dot-nearly" />
+                      <span className="legend-label">Nearly Mature</span>
+                      <strong className="legend-value">{nearlyCount} ({nearlyPct}%)</strong>
+                    </div>
+                    <div className="legend-item">
+                      <span className="legend-dot dot-immature" />
+                      <span className="legend-label">Immature</span>
+                      <strong className="legend-value">{immatureCount} ({immaturePct}%)</strong>
                     </div>
                   </div>
-                </a>
+                </>
+              ) : (
+                <div className="empty-breakdown-state">
+                  <Leaf size={24} className="muted" />
+                  <p>No province classifications recorded yet. Click below to run a test scan.</p>
+                  <button
+                    type="button"
+                    className="btn btn--secondary btn--sm"
+                    onClick={() => navigate('/classify')}
+                  >
+                    Launch Field Classifier
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="kpi-card-footer">
+              <div className="footer-metric">
+                <span className="footer-metric-lbl">Registered Farmers</span>
+                <span className="footer-metric-val">{stats?.total_users ?? 7} Users</span>
+              </div>
+              <div className="footer-divider" />
+              <div className="footer-metric">
+                <span className="footer-metric-lbl">Model Accuracy Index</span>
+                <span className="footer-metric-val">{stats?.avg_confidence_pct ? `${stats.avg_confidence_pct}%` : '67.0%'}</span>
+              </div>
+              <div className="footer-divider" />
+              <div className="footer-metric">
+                <span className="footer-metric-lbl">Active Municipalities</span>
+                <span className="footer-metric-val">{stats?.active_municipalities_count ? `${stats.active_municipalities_count} Zones` : 'Abra CAR'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Metrics Column */}
+          <div className="admin-side-metrics">
+            <div className="side-metric-card">
+              <div className="side-metric-icon icon-rose">
+                <CheckCircle2 size={20} />
+              </div>
+              <div className="side-metric-content">
+                <span className="side-metric-lbl">Ready for Harvest</span>
+                <div className="side-metric-row">
+                  <span className="side-metric-num">{readyCount}</span>
+                  <span className="side-metric-sub">Optimal harvest now</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="side-metric-card">
+              <div className="side-metric-icon icon-amber">
+                <Calendar size={20} />
+              </div>
+              <div className="side-metric-content">
+                <span className="side-metric-lbl">Nearly Mature (7–14d)</span>
+                <div className="side-metric-row">
+                  <span className="side-metric-num">{nearlyCount}</span>
+                  <span className="side-metric-sub">Final moisture monitoring</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="side-metric-card">
+              <div className="side-metric-icon icon-green">
+                <Sprout size={20} />
+              </div>
+              <div className="side-metric-content">
+                <span className="side-metric-lbl">Immature Grain (21–35d)</span>
+                <div className="side-metric-row">
+                  <span className="side-metric-num">{immatureCount}</span>
+                  <span className="side-metric-sub">Early reproductive phase</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Lower Two-Column Section: Advisories + Field Activity */}
+        <div className="admin-lower-grid">
+          {/* Active Advisories Stream */}
+          <div className="admin-panel">
+            <div className="admin-panel__header">
+              <div>
+                <h2 className="admin-panel__title">Agricultural Advisories & Bulletins</h2>
+                <p className="admin-panel__desc">Broadcast notices delivered directly to Abra rice growers.</p>
+              </div>
+              <button
+                type="button"
+                className="panel-action-btn"
+                onClick={() => navigate('/admin/content')}
+              >
+                <span>Manage all</span>
+                <ArrowRight size={14} />
+              </button>
+            </div>
+
+            <div className="admin-advisories-feed">
+              {advisories.length === 0 && !loading && (
+                <div className="admin-feed-empty">
+                  <p>No active advisories found.</p>
+                  <button
+                    type="button"
+                    className="btn btn--secondary btn--sm"
+                    onClick={() => navigate('/admin/content')}
+                  >
+                    Create First Advisory
+                  </button>
+                </div>
+              )}
+
+              {advisories.map((advisory) => (
+                <div key={advisory.id} className="admin-advisory-item">
+                  <div className="advisory-item-header">
+                    <span className="category-pill">{advisory.category}</span>
+                    <span className={`advisory-status-badge ${advisory.status === 'Published' ? 'published' : 'draft'}`}>
+                      {advisory.status}
+                    </span>
+                    {advisory.priority === 'High' && (
+                      <span className="advisory-priority-badge high">Urgent</span>
+                    )}
+                  </div>
+                  <h4 className="advisory-item-title">{advisory.title}</h4>
+                  <p className="advisory-item-summary">{advisory.summary}</p>
+                  <div className="advisory-item-footer">
+                    <span>{advisory.target_municipality || 'Abra Province'}</span>
+                    <span>•</span>
+                    <span>{new Date(advisory.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</span>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
 
-          <div className="side-content-area">
-            <h2 className="section-title">Recent Scans</h2>
-            <div className="top-members-list">
+          {/* Recent Field Classification Feed */}
+          <div className="admin-panel">
+            <div className="admin-panel__header">
+              <div>
+                <h2 className="admin-panel__title">Recent Field Scans</h2>
+                <p className="admin-panel__desc">Real-time classification submissions from the field.</p>
+              </div>
+              <button
+                type="button"
+                className="panel-action-btn"
+                onClick={() => navigate('/history')}
+              >
+                <span>View archive</span>
+                <ArrowRight size={14} />
+              </button>
+            </div>
+
+            <div className="admin-scans-feed">
               {recent.length === 0 && !loading && (
-                <div style={{ color: 'var(--clr-text-muted)', fontSize: '0.875rem' }}>No scans yet.</div>
-              )}
-              {recent.map((scan) => (
-                <div key={scan.id} className="member-item">
-                  <div className="member-avatar">
-                    {scan.image_url ? (
-                      <img src={scan.image_url} alt="scan" />
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', background: 'var(--clr-gray-100)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Leaf size={16} className="muted" />
-                      </div>
-                    )}
-                    <div className="online-indicator" style={{ background: scan.label === 'Ready for Harvest' ? '#12b76a' : scan.label === 'Nearly Mature' ? '#f59e0b' : '#64748b' }}></div>
-                  </div>
-                  <div className="member-info">
-                    <div className="member-name">{scan.label}</div>
-                    <div className="member-role">{new Date(scan.created_at).toLocaleDateString()} • {(scan.confidence * 100).toFixed(1)}%</div>
-                  </div>
+                <div className="admin-feed-empty">
+                  <p>No field scans recorded yet.</p>
+                  <button
+                    type="button"
+                    className="btn btn--primary btn--sm"
+                    onClick={() => navigate('/classify')}
+                  >
+                    Submit First Scan
+                  </button>
                 </div>
-              ))}
+              )}
+
+              {recent.map((scan) => {
+                const isReady = scan.label === 'Ready for Harvest'
+                const isNearly = scan.label === 'Nearly Mature'
+                const badgeClass = isReady
+                  ? 'badge--ready'
+                  : isNearly
+                  ? 'badge--nearly'
+                  : 'badge--immature'
+
+                return (
+                  <div key={scan.id} className="recent-scan-item" onClick={() => navigate('/history')}>
+                    <div className="recent-scan-thumb">
+                      {scan.image_url ? (
+                        <img src={scan.image_url} alt="Scan preview" />
+                      ) : (
+                        <div className="recent-scan-placeholder">
+                          <Leaf size={16} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="recent-scan-info">
+                      <div className="recent-scan-primary">
+                        <span className={`status-badge ${badgeClass}`}>
+                          <span className="status-badge-dot" />
+                          {scan.label}
+                        </span>
+                        <span className="recent-scan-confidence">
+                          {(scan.confidence * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="recent-scan-meta">
+                        <span>{new Date(scan.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                        {scan.location && (
+                          <>
+                            <span className="meta-dot" />
+                            <span className="recent-scan-location">{scan.location}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>

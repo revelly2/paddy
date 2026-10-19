@@ -1,20 +1,10 @@
-/**
- * HistoryPage.tsx
- * ---------------
- * Displays the farmer's full classification history.
- * Wraps the ClassificationHistory component with page-level
- * header and a CSV export utility.
- */
-
-// no React import needed — new JSX transform
-import { History, Download } from 'lucide-react'
+import { History, Download, Layers } from 'lucide-react'
 import ClassificationHistory from '../components/ClassificationHistory'
 import { listClassifications, formatConfidence } from '../lib/api'
 
 export default function HistoryPage() {
   const handleExport = async () => {
     try {
-      // Fetch all records (up to 1000) for export
       const res = await listClassifications(1, 1000)
       const rows = [
         ['Date', 'Result', 'Confidence', 'Location', 'Notes'],
@@ -23,14 +13,14 @@ export default function HistoryPage() {
           r.label,
           formatConfidence(r.confidence),
           r.location ?? '',
-          r.notes    ?? '',
+          r.notes ?? '',
         ]),
       ]
-      const csv  = rows.map((r) => r.map((c) => `"${c}"`).join(',')).join('\n')
+      const csv = rows.map((r) => r.map((c) => `"${c}"`).join(',')).join('\n')
       const blob = new Blob([csv], { type: 'text/csv' })
-      const url  = URL.createObjectURL(blob)
-      const a    = document.createElement('a')
-      a.href     = url
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
       a.download = `paddyscan_history_${Date.now()}.csv`
       a.click()
       URL.revokeObjectURL(url)
@@ -40,28 +30,38 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="page history-page">
-      <div className="history-page__header">
-        <div>
-          <h1 className="history-page__title">
-            <History size={24} /> Scan History
-          </h1>
-          <p className="history-page__subtitle">
-            All your paddy rice classification results, most recent first.
-          </p>
-        </div>
-        <button
-          id="btn-export-csv"
-          className="btn btn--ghost btn--sm"
-          onClick={handleExport}
-          title="Export history as CSV"
-        >
-          <Download size={16} />
-          Export CSV
-        </button>
-      </div>
+    <div className="dashboard-page">
+      <div className="dashboard-page__inner">
+        <header className="page-header-clean" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px' }}>
+            <div className="page-header-icon-box">
+              <History size={26} />
+            </div>
+            <div className="page-header-text">
+              <div className="page-header-badge">
+                <Layers size={13} />
+                <span>Harvest Records Archive</span>
+              </div>
+              <h1 className="page-header-title">Field Scan History</h1>
+              <p className="page-header-desc">
+                Chronological log of all paddy field image classifications, confidence levels, and harvest recommendations.
+              </p>
+            </div>
+          </div>
+          <button
+            id="btn-export-csv"
+            className="btn btn--secondary btn--sm"
+            onClick={handleExport}
+            title="Export history as CSV"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', whiteSpace: 'nowrap' }}
+          >
+            <Download size={16} />
+            Export CSV
+          </button>
+        </header>
 
-      <ClassificationHistory />
+        <ClassificationHistory />
+      </div>
     </div>
   )
 }

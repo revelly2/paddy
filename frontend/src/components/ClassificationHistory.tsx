@@ -23,6 +23,7 @@ import {
   formatConfidence,
   type ClassificationResult,
 } from '../lib/api'
+import EmptyScansVector from './vectors/EmptyScansVector'
 
 const PAGE_SIZE = 15
 
@@ -55,6 +56,7 @@ export default function ClassificationHistory() {
     setDeleting(id)
     try {
       await deleteClassification(id)
+      window.dispatchEvent(new CustomEvent('paddy:scan-updated'))
       fetchHistory(page)
     } catch (err) {
       alert(`Failed to delete: ${(err as Error).message}`)
@@ -110,9 +112,9 @@ export default function ClassificationHistory() {
   if (items.length === 0) {
     return (
       <div className="history__empty">
-        <div className="history__empty-icon"><Clock size={24} className="muted" /></div>
-        <h3>No scans yet</h3>
-        <p>Upload a paddy rice photo on the Classify page to get started.</p>
+        <EmptyScansVector width={96} height={96} />
+        <h3>No Scans Recorded</h3>
+        <p>Upload a paddy rice photo on the Classify page to begin building your field records.</p>
       </div>
     )
   }

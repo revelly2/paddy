@@ -89,6 +89,46 @@ export interface NewsResponse {
   items: NewsItem[]
 }
 
+export interface AdminUser {
+  id: string
+  email: string
+  full_name: string
+  role: 'admin' | 'user' | string
+  region?: string | null
+  farm_name?: string | null
+  scan_count: number
+  created_at: string
+  last_sign_in_at?: string | null
+}
+
+export interface AdminStats {
+  total_users: number
+  total_scans: number
+  ready_for_harvest_count: number
+  nearly_mature_count: number
+  immature_count: number
+  avg_confidence_pct: number
+  active_municipalities_count: number
+  model_ready: boolean
+  total_content_items: number
+  published_content_items: number
+}
+
+export interface ContentItem {
+  id: string
+  title: string
+  category: string
+  summary: string
+  content: string
+  author: string
+  status: 'Published' | 'Draft'
+  priority: 'High' | 'Normal' | 'Low'
+  target_municipality?: string | null
+  image_url?: string | null
+  created_at: string
+  updated_at: string
+}
+
 export type MaturityLabel = 'Immature' | 'Nearly Mature' | 'Ready for Harvest'
 
 // ---------------------------------------------------------------------------
@@ -103,7 +143,23 @@ const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || ''
  */
 async function getAuthHeader(): Promise<Record<string, string>> {
   const { data } = await supabase.auth.getSession()
-  const token = data.session?.access_token
+  let session = data.session
+  if (!session) throw new Error('Not authenticated. Please log in.')
+
+  // Proactively refresh the access token if it has expired or will expire in <60 seconds
+  const nowInSec = Math.floor(Date.now() / 1000)
+  if (session.expires_at && session.expires_at <= nowInSec + 60) {
+    try {
+      const { data: refreshed, error } = await supabase.auth.refreshSession()
+      if (!error && refreshed.session) {
+        session = refreshed.session
+      }
+    } catch {
+      // If refresh fails due to network, proceed with the existing token
+    }
+  }
+
+  const token = session.access_token
   if (!token) throw new Error('Not authenticated. Please log in.')
   return { Authorization: `Bearer ${token}` }
 }
@@ -124,7 +180,11 @@ async function apiFetch<T>(
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: res.statusText }))
-      throw new Error((err as { detail?: string }).detail ?? `HTTP ${res.status}`)
+      const detail = (err as { detail?: string }).detail
+      if (res.status === 401 && detail?.toLowerCase().includes('expired')) {
+        throw new Error('Your session has expired. Please sign out and log back in.')
+      }
+      throw new Error(detail ?? `HTTP ${res.status}`)
     }
 
     return res.json() as Promise<T>
@@ -170,7 +230,10 @@ export async function classifyImage(
   // Don't set Content-Type manually — browser sets it with the correct
   // multipart boundary when using FormData.
   try {
-    const res = await fetch(`${BASE_URL}/api/classify`, {
+    const url = location
+      ? `${BASE_URL}/api/classify?location=${encodeURIComponent(location)}`
+      : `${BASE_URL}/api/classify`
+    const res = await fetch(url, {
       method:  'POST',
       headers: authHeaders,
       body:    formData,
@@ -178,7 +241,11 @@ export async function classifyImage(
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: res.statusText }))
-      throw new Error((err as { detail?: string }).detail ?? `HTTP ${res.status}`)
+      const detail = (err as { detail?: string }).detail
+      if (res.status === 401 && detail?.toLowerCase().includes('expired')) {
+        throw new Error('Your session has expired. Please sign out and log back in.')
+      }
+      throw new Error(detail ?? `HTTP ${res.status}`)
     }
 
     return res.json() as Promise<ClassificationResult>
@@ -248,6 +315,131 @@ export async function healthCheck(): Promise<HealthResponse> {
  */
 export async function getAgNews(): Promise<NewsResponse> {
   return apiFetch<NewsResponse>('/api/news')
+}
+
+// ---------------------------------------------------------------------------
+// Admin & Content Management API
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch province-wide system statistics (Admin only).
+ */
+export async function getAdminStats(): Promise<AdminStats> {
+  return apiFetch<AdminStats>('/api/admin/stats')
+}
+
+/**
+ * Fetch all registered users and their scan stats (Admin only).
+ */
+export async function getAdminUsers(): Promise<AdminUser[]> {
+  return apiFetch<AdminUser[]>('/api/admin/users')
+}
+
+/**
+ * Create a new user account (Admin only).
+ */
+export async function createAdminUser(data: {
+  email: string
+  password: string
+  full_name?: string
+  role?: string
+  region?: string
+  farm_name?: string
+}): Promise<AdminUser> {
+  return apiFetch<AdminUser>('/api/admin/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+}
+
+/**
+ * Update user details or role (Admin only).
+ */
+export async function updateAdminUser(
+  userId: string,
+  updates: Partial<Pick<AdminUser, 'full_name' | 'role' | 'region' | 'farm_name'>>
+): Promise<AdminUser> {
+  return apiFetch<AdminUser>(`/api/admin/users/${userId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  })
+}
+
+/**
+ * Delete a user account (Admin only).
+ */
+export async function deleteAdminUser(userId: string): Promise<void> {
+  await apiFetch(`/api/admin/users/${userId}`, { method: 'DELETE' })
+}
+
+/**
+ * List published agricultural advisories and notices (for all authenticated users).
+ */
+export async function listContent(params?: { category?: string; search?: string }): Promise<ContentItem[]> {
+  const query = new URLSearchParams()
+  if (params?.category) query.set('category', params.category)
+  if (params?.search) query.set('search', params.search)
+  const qs = query.toString() ? `?${query.toString()}` : ''
+  return apiFetch<ContentItem[]>(`/api/content${qs}`)
+}
+
+/**
+ * Get details for a specific advisory.
+ */
+export async function getContentItem(id: string): Promise<ContentItem> {
+  return apiFetch<ContentItem>(`/api/content/${id}`)
+}
+
+/**
+ * List all advisories including drafts (Admin only).
+ */
+export async function listAdminContent(params?: {
+  category?: string
+  status?: string
+  search?: string
+}): Promise<ContentItem[]> {
+  const query = new URLSearchParams()
+  if (params?.category) query.set('category', params.category)
+  if (params?.status) query.set('status', params.status)
+  if (params?.search) query.set('search', params.search)
+  const qs = query.toString() ? `?${query.toString()}` : ''
+  return apiFetch<ContentItem[]>(`/api/admin/content${qs}`)
+}
+
+/**
+ * Create a new advisory item (Admin only).
+ */
+export async function createAdminContent(
+  data: Omit<ContentItem, 'id' | 'created_at' | 'updated_at'>
+): Promise<ContentItem> {
+  return apiFetch<ContentItem>('/api/admin/content', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+}
+
+/**
+ * Update an existing advisory item (Admin only).
+ */
+export async function updateAdminContent(
+  id: string,
+  updates: Partial<Omit<ContentItem, 'id' | 'created_at' | 'updated_at'>>
+): Promise<ContentItem> {
+  return apiFetch<ContentItem>(`/api/admin/content/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  })
+}
+
+/**
+ * Delete an advisory item (Admin only).
+ */
+export async function deleteAdminContent(id: string): Promise<void> {
+  await apiFetch(`/api/admin/content/${id}`, { method: 'DELETE' })
 }
 
 // ---------------------------------------------------------------------------

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Camera, List, Leaf, Sprout } from 'lucide-react'
+import { Camera, List, Leaf, Sprout, ArrowRight, ExternalLink, Clock, ShieldCheck, Sparkles, MapPin, BarChart3 } from 'lucide-react'
 import { type Session } from '../lib/supabase'
 import { getUserStats, listClassifications, getAgNews, type StatsResponse, type ClassificationResult, type NewsItem } from '../lib/api'
+import RiceFieldHeroVector from '../components/vectors/RiceFieldHeroVector'
+import EmptyScansVector from '../components/vectors/EmptyScansVector'
 
 interface UserDashboardProps {
   session: Session
@@ -20,7 +22,7 @@ export default function UserDashboard({ session }: UserDashboardProps) {
   useEffect(() => {
     Promise.all([
       getUserStats().catch(() => null),
-      listClassifications(1, 3).catch(() => ({ data: [] })),
+      listClassifications(1, 4).catch(() => ({ data: [] })),
       getAgNews().catch(() => ({ items: [] }))
     ]).then(([statsData, historyData, newsData]) => {
       setStats(statsData)
@@ -33,94 +35,248 @@ export default function UserDashboard({ session }: UserDashboardProps) {
   return (
     <div className="dashboard-page">
       <div className="dashboard-page__inner">
-        {/* Header Section */}
-        <header className="dashboard-header-modern" style={{ background: 'linear-gradient(135deg, #16a34a 0%, #14532d 100%)' }}>
-          <div className="header-decor header-decor-1"><Sprout size={48} /></div>
-          <div className="header-decor header-decor-3"><Sprout size={32} /></div>
-          <h1 className="dashboard-title-modern">Hello, {firstName} 👋</h1>
-          <p className="dashboard-subtitle-modern">Ready to check your paddy field today?</p>
-        </header>
-
-        {/* Quick Actions (Bigger for users) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px', marginBottom: '32px' }}>
-          <div className="action-card" onClick={() => navigate('/classify')} style={{ padding: '24px', cursor: 'pointer', background: 'var(--clr-white)', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', border: '1px solid var(--clr-border)' }}>
-            <div className="action-icon" style={{ background: '#dcfce7', color: '#16a34a', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
-              <Camera size={24} />
+        {/* Modern Elevated Hero Section */}
+        <header className="modern-hero-card">
+          <div className="modern-hero-content">
+            <div className="modern-hero-pill">
+              <span className="modern-hero-pulse" />
+              <Sprout size={14} className="modern-hero-pill-icon" />
+              <span>Abra Rice Research Advisory</span>
             </div>
-            <div className="action-text">
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '1.2rem', color: 'var(--clr-gray-900)' }}>Take a Photo</h3>
-              <p style={{ margin: 0, color: 'var(--clr-gray-500)', fontSize: '0.95rem' }}>Upload or take a picture of your paddy to check if it's ready for harvest.</p>
+            <h1 className="modern-hero-title">Good day, {firstName}</h1>
+            <p className="modern-hero-subtitle">
+              Monitor your paddy fields, identify maturity stages, and harvest at peak yield with AI.
+            </p>
+
+            <div className="modern-hero-meta-strip">
+              <div className="hero-meta-item">
+                <Clock size={14} />
+                <span>{new Date().toLocaleDateString('en-PH', { month: 'short', day: 'numeric', weekday: 'short' })}</span>
+              </div>
+              <div className="hero-meta-divider" />
+              <div className="hero-meta-item">
+                <ShieldCheck size={14} />
+                <span>Panicle CNN Active</span>
+              </div>
+              <div className="hero-meta-divider" />
+              <div className="hero-meta-item">
+                <MapPin size={14} />
+                <span>Abra Province</span>
+              </div>
             </div>
           </div>
-          <div className="action-card" onClick={() => navigate('/history')} style={{ padding: '24px', cursor: 'pointer', background: 'var(--clr-white)', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', border: '1px solid var(--clr-border)' }}>
-            <div className="action-icon" style={{ background: '#fef3c7', color: '#d97706', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
-              <List size={24} />
+
+          <div className="modern-hero-illustration">
+            <RiceFieldHeroVector width="100%" height={160} />
+          </div>
+        </header>
+
+        {/* Quick Action Bento Cards */}
+        <div className="bento-action-grid">
+          <div
+            className="bento-card bento-card--primary"
+            onClick={() => navigate('/classify')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && navigate('/classify')}
+          >
+            <div className="bento-card-bg-glow" />
+            <div className="bento-card-header">
+              <div className="bento-icon-wrapper bento-icon-wrapper--green">
+                <Camera size={24} />
+              </div>
+              <span className="bento-action-badge">New Scan</span>
             </div>
-            <div className="action-text">
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '1.2rem', color: 'var(--clr-gray-900)' }}>My Scans</h3>
-              <p style={{ margin: 0, color: 'var(--clr-gray-500)', fontSize: '0.95rem' }}>View your past scans and keep track of your field's progress.</p>
+            <div className="bento-card-body">
+              <h3 className="bento-card-title">Classify Crop Maturity</h3>
+              <p className="bento-card-desc">
+                Upload or capture a photo of your rice panicles to calculate optimal harvest timing and maturity class.
+              </p>
+            </div>
+            <div className="bento-card-footer">
+              <span className="bento-cta-link">
+                Launch Classifier <ArrowRight size={16} />
+              </span>
+            </div>
+          </div>
+
+          <div
+            className="bento-card bento-card--secondary"
+            onClick={() => navigate('/history')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && navigate('/history')}
+          >
+            <div className="bento-card-header">
+              <div className="bento-icon-wrapper bento-icon-wrapper--amber">
+                <List size={24} />
+              </div>
+              <span className="bento-stat-chip">
+                {stats?.total_scans ? `${stats.total_scans} Total` : 'Archive'}
+              </span>
+            </div>
+            <div className="bento-card-body">
+              <h3 className="bento-card-title">Field Scan History</h3>
+              <p className="bento-card-desc">
+                Review past classifications, confidence ratings, panicle counts, and export harvest documentation.
+              </p>
+            </div>
+            <div className="bento-card-footer">
+              <span className="bento-cta-link">
+                View Records <ArrowRight size={16} />
+              </span>
+            </div>
+          </div>
+
+          <div
+            className="bento-card bento-card--tertiary"
+            onClick={() => window.dispatchEvent(new CustomEvent('paddy:open-abra-study'))}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && window.dispatchEvent(new CustomEvent('paddy:open-abra-study'))}
+          >
+            <div className="bento-card-header">
+              <div className="bento-icon-wrapper bento-icon-wrapper--emerald">
+                <BarChart3 size={24} />
+              </div>
+              <span className="bento-stat-chip" style={{ background: '#dcfce7', color: '#15803d', borderColor: '#86efac' }}>
+                Abra CAR Study
+              </span>
+            </div>
+            <div className="bento-card-body">
+              <h3 className="bento-card-title">Abra Harvest Study</h3>
+              <p className="bento-card-desc">
+                Temporal phenology, month/day/lighting breakdown, harvest windows, and Abra municipal field research.
+              </p>
+            </div>
+            <div className="bento-card-footer">
+              <span className="bento-cta-link" style={{ color: '#16a34a' }}>
+                Explore Study Analytics <ArrowRight size={16} />
+              </span>
             </div>
           </div>
         </div>
 
+        {/* Two-Column Grid: Recent Scans + Agriculture Intelligence */}
         <div className="dashboard-content-grid">
-          {/* Recent Scans */}
+          {/* Recent Scans Panel */}
           <div className="dashboard-panel">
             <div className="panel-header">
-              <h2 className="panel-title">Recent Scans</h2>
-            </div>
-            <div className="top-members-list" style={{ padding: '16px' }}>
-              {recent.length === 0 && !loading && (
-                <div style={{ color: 'var(--clr-text-muted)', fontSize: '0.9rem', textAlign: 'center', padding: '20px 0' }}>You haven't scanned anything yet.</div>
-              )}
-              {recent.map((scan) => (
-                <div key={scan.id} className="member-item" style={{ padding: '12px 0', borderBottom: '1px solid var(--clr-gray-100)' }}>
-                  <div className="member-avatar">
-                    {scan.image_url ? (
-                      <img src={scan.image_url} alt="scan" style={{ borderRadius: '8px' }} />
-                    ) : (
-                      <div style={{ width: '40px', height: '40px', background: 'var(--clr-gray-100)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Leaf size={16} className="muted" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="member-info">
-                    <div className="member-name" style={{ fontSize: '1rem', fontWeight: 600 }}>{scan.label}</div>
-                    <div className="member-role">{new Date(scan.created_at).toLocaleDateString()} • {(scan.confidence * 100).toFixed(1)}% confidence</div>
-                  </div>
-                </div>
-              ))}
+              <div className="panel-header-title-group">
+                <h2 className="panel-title">Recent Field Scans</h2>
+                <span className="panel-badge-count">{recent.length}</span>
+              </div>
               {recent.length > 0 && (
-                <button onClick={() => navigate('/history')} style={{ width: '100%', padding: '12px', marginTop: '8px', background: 'var(--clr-gray-50)', border: '1px solid var(--clr-border)', borderRadius: '8px', fontWeight: 600, color: 'var(--clr-primary-700)', cursor: 'pointer' }}>View All Scans</button>
+                <button
+                  type="button"
+                  className="panel-text-btn"
+                  onClick={() => navigate('/history')}
+                >
+                  View all
+                </button>
               )}
+            </div>
+
+            <div className="recent-scans-list">
+              {recent.length === 0 && !loading && (
+                <div className="empty-state-panel">
+                  <EmptyScansVector width={80} height={80} />
+                  <p className="empty-state-panel__title">No scans recorded yet</p>
+                  <p className="empty-state-panel__desc">
+                    Take your first field photo to start tracking grain maturity.
+                  </p>
+                  <button
+                    className="btn btn--primary btn--sm"
+                    onClick={() => navigate('/classify')}
+                  >
+                    Start First Scan
+                  </button>
+                </div>
+              )}
+
+              {recent.map((scan) => {
+                const isReady = scan.label === 'Ready for Harvest'
+                const isNearly = scan.label === 'Nearly Mature'
+                const badgeClass = isReady
+                  ? 'badge--ready'
+                  : isNearly
+                  ? 'badge--nearly'
+                  : 'badge--immature'
+
+                return (
+                  <div key={scan.id} className="recent-scan-item" onClick={() => navigate('/history')}>
+                    <div className="recent-scan-thumb">
+                      {scan.image_url ? (
+                        <img src={scan.image_url} alt="Scan preview" />
+                      ) : (
+                        <div className="recent-scan-placeholder">
+                          <Leaf size={16} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="recent-scan-info">
+                      <div className="recent-scan-primary">
+                        <span className={`status-badge ${badgeClass}`}>
+                          <span className="status-badge-dot" />
+                          {scan.label}
+                        </span>
+                        <span className="recent-scan-confidence">
+                          {(scan.confidence * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="recent-scan-meta">
+                        <span>{new Date(scan.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                        {scan.location && (
+                          <>
+                            <span className="meta-dot" />
+                            <span className="recent-scan-location">{scan.location}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
 
-          {/* Farming News */}
+          {/* Farming News & Agri Tips */}
           <div className="dashboard-panel">
             <div className="panel-header">
-              <h2 className="panel-title">Farming News & Tips</h2>
+              <div className="panel-header-title-group">
+                <h2 className="panel-title">Agri News & Guidance</h2>
+                <span className="panel-badge-pill">Live Updates</span>
+              </div>
             </div>
-            <div className="recent-posts" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+            <div className="agri-news-list">
               {news.length === 0 && !loading && (
-                <div style={{ color: 'var(--clr-text-muted)', fontSize: '0.9rem', textAlign: 'center', padding: '20px 0' }}>No news available right now.</div>
+                <div className="empty-state-panel">
+                  <p className="empty-state-panel__desc">No news articles found at this time.</p>
+                </div>
               )}
-              {news.map((item, i) => (
-                <a href={item.link} target="_blank" rel="noopener noreferrer" key={i} style={{ textDecoration: 'none' }}>
-                  <div className="post-card" style={{ 
-                    background: item.image_url ? `linear-gradient(to right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.2) 100%), url(${item.image_url})` : 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    padding: '16px', 
-                    color: '#fff', 
-                    borderRadius: '12px',
-                    transition: 'transform 0.2s ease',
-                  }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '1rem', fontWeight: 600, lineHeight: 1.3 }}>{item.title}</span>
+
+              {news.map((item, idx) => (
+                <a
+                  href={item.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  key={idx}
+                  className="modern-news-card"
+                >
+                  <div className="news-card-body">
+                    <div className="news-card-meta">
+                      <span className="news-card-tag">Agronomy</span>
+                      {item.pubDate && !isNaN(Date.parse(item.pubDate)) && (
+                        <span className="news-card-date">
+                          {new Date(item.pubDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}
+                        </span>
+                      )}
                     </div>
+                    <h4 className="news-card-title">{item.title}</h4>
+                    <span className="news-card-read-more">
+                      Read report <ExternalLink size={13} />
+                    </span>
                   </div>
                 </a>
               ))}

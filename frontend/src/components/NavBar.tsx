@@ -1,16 +1,21 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { 
   Menu, X, Search, BarChart2, Layers, CheckSquare, 
-  PieChart, Users, LifeBuoy, Settings, PlayCircle, LogOut, Camera, Sprout
+  PieChart, Users, LifeBuoy, Settings, PlayCircle, LogOut, Camera, Sprout,
+  Calendar, Clock, MapPin, Sparkles, ChevronRight, Newspaper, Cpu, BookOpen
 } from 'lucide-react'
 import { supabase, type Session } from '../lib/supabase'
+import { listClassifications, type ClassificationResult } from '../lib/api'
+import { calculateAbraHarvestSummary, type AbraHarvestStudySummary } from '../lib/harvestAnalytics'
+import AbraHarvestStudyModal from './AbraHarvestStudyModal'
 
 interface NavBarProps {
   session: Session
+  isAdmin?: boolean
 }
 
-export default function NavBar({ session }: NavBarProps) {
+export default function NavBar({ session, isAdmin }: NavBarProps) {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('Farmer')
@@ -18,6 +23,30 @@ export default function NavBar({ session }: NavBarProps) {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   const [isPromoVisible, setIsPromoVisible] = useState(true)
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
+  const [isAbraModalOpen, setIsAbraModalOpen] = useState(false)
+  const [scans, setScans] = useState<ClassificationResult[]>([])
+  const [harvestSummary, setHarvestSummary] = useState<AbraHarvestStudySummary>(() =>
+    calculateAbraHarvestSummary([])
+  )
+
+  const getInitials = (fullName: string) => {
+    const clean = fullName.replace(/\(.*?\)/g, '').trim()
+    const parts = clean.split(/\s+/).filter(Boolean)
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+    return clean.slice(0, 2).toUpperCase() || 'P'
+  }
+
+  const loadScans = useCallback(async () => {
+    try {
+      const res = await listClassifications(1, 100)
+      if (res?.data) {
+        setScans(res.data)
+        setHarvestSummary(calculateAbraHarvestSummary(res.data))
+      }
+    } catch (err) {
+      console.warn('Could not load scan data for sidebar:', err)
+    }
+  }, [])
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -31,10 +60,26 @@ export default function NavBar({ session }: NavBarProps) {
       if (session.user.email) setEmail(session.user.email)
     }
     loadProfile()
-  }, [session])
+    loadScans()
+
+    const handleScanUpdated = () => loadScans()
+    const handleOpenAbraStudy = () => setIsAbraModalOpen(true)
+
+    window.addEventListener('paddy:scan-updated', handleScanUpdated)
+    window.addEventListener('paddy:open-abra-study', handleOpenAbraStudy)
+
+    return () => {
+      window.removeEventListener('paddy:scan-updated', handleScanUpdated)
+      window.removeEventListener('paddy:open-abra-study', handleOpenAbraStudy)
+    }
+  }, [session, loadScans])
 
   const navItems = [
     { to: '/',           label: 'Dashboard', icon: BarChart2 },
+    ...(isAdmin ? [
+      { to: '/admin/users',   label: 'User Accounts', icon: Users },
+      { to: '/admin/content', label: 'Advisories & Content', icon: BookOpen },
+    ] : []),
     { to: '/classify',   label: 'Classify',  icon: Camera },
     { to: '/history',    label: 'History',   icon: Layers },
   ]
@@ -95,30 +140,78 @@ export default function NavBar({ session }: NavBarProps) {
             ))}
           </nav>
           
-          {isPromoVisible && (
-            <div className="sidebar__promo">
-              <div className="sidebar__promo-header">
-                <span className="sidebar__promo-title">New model live!</span>
-                <X size={14} className="sidebar__promo-close" onClick={() => setIsPromoVisible(false)} style={{ cursor: 'pointer' }} />
+          {/* Abra Province Rice Study Sidebar Widget */}
+          <div className="sidebar__abra-widget">
+            <div className="sidebar__abra-header">
+              <div className="sidebar__abra-tag">
+                <span className="abra-dot" />
+                <span className="abra-tag-text">Abra Rice Study</span>
               </div>
-              <p className="sidebar__promo-desc">
-                PaddyScan CNN v2 is now active for more accurate maturity detection.
-              </p>
-              <div className="sidebar__promo-image">
-                <img src="/dashboard-bg.png" alt="Promo video thumbnail" />
-                <div className="sidebar__promo-play">
-                  <PlayCircle size={24} fill="white" color="var(--clr-primary-700)" />
+              <button
+                className="sidebar__abra-expand-btn"
+                onClick={() => setIsAbraModalOpen(true)}
+                title="Open Abra Harvest Study Analytics"
+                aria-label="Open Abra Harvest Study Analytics"
+              >
+                <Sparkles size={14} color="#16a34a" />
+              </button>
+            </div>
+
+            <div className="sidebar__abra-season">
+              <span className="abra-season-label">Active Season</span>
+              <span className="abra-season-value">{harvestSummary.currentSeason}</span>
+            </div>
+
+            {/* Scanned Temporal Reading */}
+            {harvestSummary.latestScan ? (
+              <div className="sidebar__abra-scan-readout">
+                <div className="sidebar__abra-readout-row">
+                  <Clock size={13} className="abra-icon-dim" />
+                  <span className="sidebar__abra-time">
+                    {harvestSummary.latestScan.temporal.monthShort} {harvestSummary.latestScan.temporal.dayOfMonth} • {harvestSummary.latestScan.temporal.dayOfWeek.slice(0, 3)} • {harvestSummary.latestScan.temporal.timeString}
+                  </span>
+                </div>
+                <div className="sidebar__abra-readout-window" style={{ color: harvestSummary.latestScan.window.color, background: harvestSummary.latestScan.window.bgColor }}>
+                  {harvestSummary.latestScan.window.status}
                 </div>
               </div>
-              <div className="sidebar__promo-actions">
-                <button className="sidebar__promo-btn muted" onClick={() => setIsPromoVisible(false)}>Dismiss</button>
-                <button className="sidebar__promo-btn primary" onClick={() => setIsUpdateModalOpen(true)}>What's new?</button>
+            ) : (
+              <div className="sidebar__abra-scan-readout muted">
+                <Clock size={13} className="abra-icon-dim" />
+                <span>Harvest calendar active</span>
+              </div>
+            )}
+
+            {/* Harvest Readiness Quick Stats */}
+            <div className="sidebar__abra-stat-grid">
+              <div className="abra-stat-pill ready" title="Ready for harvest now (0-3d)">
+                <span className="stat-num">{harvestSummary.readyNowCount}</span>
+                <span className="stat-lbl">Ready</span>
+              </div>
+              <div className="abra-stat-pill nearly" title="Nearly mature (7-14d)">
+                <span className="stat-num">{harvestSummary.nearlyMatureCount}</span>
+                <span className="stat-lbl">7–14d</span>
+              </div>
+              <div className="abra-stat-pill immature" title="Immature (21-35d)">
+                <span className="stat-num">{harvestSummary.immatureCount}</span>
+                <span className="stat-lbl">21–35d</span>
               </div>
             </div>
-          )}
+
+            <button
+              className="sidebar__abra-btn"
+              onClick={() => setIsAbraModalOpen(true)}
+            >
+              <span>Harvest Study Data</span>
+              <ChevronRight size={14} />
+            </button>
+          </div>
 
           <div className="sidebar__user" onClick={() => setIsProfileModalOpen(true)}>
-            <img src={`https://ui-avatars.com/api/?name=${name}&background=random`} alt="Avatar" className="sidebar__avatar-img" />
+            <div className={`sidebar__avatar-badge ${isAdmin ? 'sidebar__avatar-badge--admin' : ''}`}>
+              <span>{getInitials(name)}</span>
+              {isAdmin && <span className="sidebar__avatar-dot" title="Administrator" />}
+            </div>
             <div className="sidebar__user-info">
               <span className="sidebar__user-name">{name}</span>
               <span className="sidebar__user-email">{email}</span>
@@ -161,6 +254,18 @@ export default function NavBar({ session }: NavBarProps) {
                 {label}
               </NavLink>
             ))}
+            <button
+              type="button"
+              className="sidebar__link"
+              style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}
+              onClick={() => {
+                setOpen(false)
+                setIsAbraModalOpen(true)
+              }}
+            >
+              <Sparkles size={18} color="#16a34a" />
+              <span className="sidebar__link-text">Abra Harvest Study</span>
+            </button>
           </div>
         )}
       </nav>
@@ -173,7 +278,9 @@ export default function NavBar({ session }: NavBarProps) {
               <button onClick={() => setIsProfileModalOpen(false)}><X size={20} /></button>
             </div>
             <div className="profile-modal-body">
-              <img src={`https://ui-avatars.com/api/?name=${name}&background=random`} alt="Avatar" className="profile-modal-avatar" />
+              <div className={`profile-modal-avatar-badge ${isAdmin ? 'profile-modal-avatar-badge--admin' : ''}`}>
+                <span>{getInitials(name)}</span>
+              </div>
               <div className="profile-modal-info">
                 <h4>{name}</h4>
                 <p>{email}</p>
@@ -205,13 +312,17 @@ export default function NavBar({ session }: NavBarProps) {
             </div>
             <div className="profile-modal-body" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'left' }}>
               <div>
-                <h4 style={{ margin: '0 0 8px 0', color: 'var(--clr-gray-900)' }}>🌾 Agriculture News Feed</h4>
+                <h4 style={{ margin: '0 0 8px 0', color: 'var(--clr-gray-900)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Newspaper size={18} color="#16a34a" /> Agriculture News Feed
+                </h4>
                 <p style={{ margin: 0, color: 'var(--clr-gray-600)', fontSize: '0.9rem', lineHeight: 1.5 }}>
                   Stay up to date with the latest agriculture news right from your dashboard. We've added a new section that automatically pulls live updates from AgWeb!
                 </p>
               </div>
               <div>
-                <h4 style={{ margin: '0 0 8px 0', color: 'var(--clr-gray-900)' }}>🤖 PaddyScan CNN v2</h4>
+                <h4 style={{ margin: '0 0 8px 0', color: 'var(--clr-gray-900)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Cpu size={18} color="#16a34a" /> PaddyScan CNN v2
+                </h4>
                 <p style={{ margin: 0, color: 'var(--clr-gray-600)', fontSize: '0.9rem', lineHeight: 1.5 }}>
                   Our new AI model is now active! It features improved panicle detection and more accurate HSV color analysis to better determine rice maturity.
                 </p>
@@ -229,7 +340,17 @@ export default function NavBar({ session }: NavBarProps) {
           </div>
         </div>
       )}
+
+      {/* Abra Province Rice Harvest Study Modal */}
+      <AbraHarvestStudyModal
+        isOpen={isAbraModalOpen}
+        onClose={() => setIsAbraModalOpen(false)}
+        summary={harvestSummary}
+        scans={scans}
+        onRefresh={loadScans}
+      />
     </>
   )
 }
+
 

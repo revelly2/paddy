@@ -1,0 +1,58 @@
+[
+  {
+    "id": "content-abra-001",
+    "title": "Wet Season 2026 Peak Harvest Scheduling Advisory",
+    "category": "Harvest Scheduling",
+    "summary": "Agro-climatic calibration indicates main crop harvesting in Abra peaks between October 15 and November 25.",
+    "content": "Farmers across Abra Province (especially low-lying fields in Bangued, Tayum, and Pe\u00f1arrubia) are advised to begin field readiness scans 10 days ahead of expected harvest. When 80\u201385% of grains on the panicle turn golden yellow, terminal drainage should be completed immediately to minimize shattering loss during mechanical or manual reaping.",
+    "author": "Abra Rice Research Extension Team",
+    "status": "Published",
+    "priority": "High",
+    "target_municipality": "Abra Province (General)",
+    "image_url": "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=800&q=80",
+    "created_at": "2026-10-01T08:00:00Z",
+    "updated_at": "2026-10-01T08:00:00Z"
+  },
+  {
+    "id": "content-abra-002",
+    "title": "Panicle Color & Moisture Thresholds for Inbred Varieties",
+    "category": "Agronomy",
+    "summary": "Guidelines for calibrating visual panicle ripeness against 20\u201324% target grain moisture.",
+    "content": "For prominent Abra varieties including NSIC Rc 222, Rc 160, and Rc 216, harvesting at grain moisture between 20% and 24% achieves the highest head rice recovery during milling. Harvesting too early results in chalky, immature kernels; delaying past full maturity causes severe sun-checking and fissure cracks.",
+    "author": "Rice Phenology Advisory Desk",
+    "status": "Published",
+    "priority": "Normal",
+    "target_municipality": "Lagangilang, Abra",
+    "image_url": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80",
+    "created_at": "2026-10-05T09:30:00Z",
+    "updated_at": "2026-10-05T09:30:00Z"
+  },
+  {
+    "id": "content-abra-003",
+    "title": "Post-Harvest Sun-Drying Protocol in CAR Mountain Corridors",
+    "category": "Post-Harvest",
+    "summary": "Preventing aflatoxin and grain cracking through gradual moisture reduction on communal solar pavements.",
+    "content": "In mountain valleys where afternoon humidity spikes abruptly, spread freshly threshed paddy at a layer thickness of 3\u20135 cm. Turn grain layers every 30 minutes. Avoid drying on bare soil or unwashed roadsides to preserve grade 1 commercial cleanliness standards.",
+    "author": "Department of Agriculture - CAR",
+    "status": "Published",
+    "priority": "Normal",
+    "target_municipality": "Abra Province (General)",
+    "image_url": "https://images.unsplash.com/photo-1574943320219-553eb213f72d?auto=format&fit=crop&w=800&q=80",
+    "created_at": "2026-10-12T14:00:00Z",
+    "updated_at": "2026-10-12T14:00:00Z"
+  },
+  {
+    "id": "content-abra-004",
+    "title": "Dry Season (Tag-araw) Irrigation Planning Notice",
+    "category": "Agronomy",
+    "summary": "Draft notice for communal irrigation system maintenance starting December 2026.",
+    "content": "Communal irrigation associations (CIS) across Abra River catchment basins should schedule canal silt removal prior to second-crop seeding in late December.",
+    "author": "Abra Irrigators Council",
+    "status": "Draft",
+    "priority": "Low",
+    "target_municipality": "Bucay, Abra",
+    "image_url": null,
+    "created_at": "2026-10-18T16:00:00Z",
+    "updated_at": "2026-10-18T16:00:00Z"
+  }
+]

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Settings, User, Bell, Shield, PhoneCall } from 'lucide-react'
+import { Settings, User, Bell, Shield, PhoneCall, Check, Sparkles } from 'lucide-react'
 import { type Session } from '../lib/supabase'
 
 interface SettingsPageProps {
@@ -28,124 +28,154 @@ export default function SettingsPage({ session, isAdmin }: SettingsPageProps) {
 
   return (
     <div className="dashboard-page">
-      <div className="dashboard-page__inner" style={{ maxWidth: '800px', margin: '0 auto' }}>
-        <header className="dashboard-header-modern" style={{ borderBottom: 'none', paddingBottom: 0, marginTop: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '48px', height: '48px', background: 'var(--clr-primary-50)', color: 'var(--clr-primary-600)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Settings size={24} />
+      <div className="dashboard-page__inner" style={{ maxWidth: '840px', margin: '0 auto' }}>
+        <header className="page-header-clean">
+          <div className="page-header-icon-box">
+            <Settings size={26} />
+          </div>
+          <div className="page-header-text">
+            <div className="page-header-badge">
+              <Sparkles size={13} />
+              <span>System Preferences</span>
             </div>
-            <div>
-              <h1 className="dashboard-title-modern">Settings</h1>
-              <p style={{ color: 'var(--clr-text-muted)', fontSize: '0.95rem', marginTop: '4px' }}>
-                Manage your account preferences and app settings.
-              </p>
-            </div>
+            <h1 className="page-header-title">Settings & Configuration</h1>
+            <p className="page-header-desc">
+              Manage your farmer account credentials, notification triggers, and provincial study preferences.
+            </p>
           </div>
         </header>
 
-        <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div className="settings-stack">
           {isAdmin && (
-            <div className="dashboard-panel">
-              <div className="panel-header">
-                <h2 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <PhoneCall size={18} className="muted" /> App Configuration
-                </h2>
+            <div className="settings-panel">
+              <div className="settings-panel-header">
+                <PhoneCall size={18} className="settings-header-icon" />
+                <div>
+                  <h2 className="settings-panel-title">Administrator Support Contacts</h2>
+                  <p className="settings-panel-subtitle">Configure contact points displayed to registered farmers</p>
+                </div>
               </div>
-              <div className="panel-list">
-                <div className="list-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
-                  <div className="list-item-title">Support Email</div>
-                  <input 
-                    type="email" 
-                    className="auth-field__input" 
-                    style={{ width: '100%', maxWidth: '400px' }}
-                    value={supportEmail} 
-                    onChange={e => setSupportEmail(e.target.value)} 
+              <div className="settings-fields-body">
+                <div className="settings-field">
+                  <label htmlFor="settings-support-email" className="settings-field-label">Support Email Address</label>
+                  <input
+                    id="settings-support-email"
+                    type="email"
+                    className="meta-field-input"
+                    value={supportEmail}
+                    onChange={(e) => setSupportEmail(e.target.value)}
                   />
                 </div>
-                <div className="list-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
-                  <div className="list-item-title">Support Phone Number</div>
-                  <input 
-                    type="text" 
-                    className="auth-field__input" 
-                    style={{ width: '100%', maxWidth: '400px' }}
-                    value={supportPhone} 
-                    onChange={e => setSupportPhone(e.target.value)} 
+                <div className="settings-field">
+                  <label htmlFor="settings-support-phone" className="settings-field-label">Hotline Phone Number</label>
+                  <input
+                    id="settings-support-phone"
+                    type="text"
+                    className="meta-field-input"
+                    value={supportPhone}
+                    onChange={(e) => setSupportPhone(e.target.value)}
                   />
                 </div>
-                <div className="list-item" style={{ background: 'var(--clr-gray-50)' }}>
-                  <button className="btn btn--primary" onClick={handleSaveSupportInfo}>
-                    {isSaved ? 'Saved!' : 'Save Support Info'}
+                <div className="settings-save-row">
+                  <button
+                    type="button"
+                    className="btn btn--primary btn--sm"
+                    onClick={handleSaveSupportInfo}
+                  >
+                    {isSaved ? (
+                      <>
+                        <Check size={16} /> Saved
+                      </>
+                    ) : (
+                      'Save Support Info'
+                    )}
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          <div className="dashboard-panel">
-            <div className="panel-header">
-              <h2 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <User size={18} className="muted" /> Account
-              </h2>
-            </div>
-            <div className="panel-list">
-              <div className="list-item" style={{ justifyContent: 'space-between' }}>
-                <div className="list-item-content">
-                  <div className="list-item-title">Profile Information</div>
-                  <div className="list-item-desc">Update your name and contact details</div>
-                </div>
-                <button className="btn btn--secondary btn--sm">Edit</button>
-              </div>
-              <div className="list-item" style={{ justifyContent: 'space-between' }}>
-                <div className="list-item-content">
-                  <div className="list-item-title">Farm Details</div>
-                  <div className="list-item-desc">Manage your farm location and size</div>
-                </div>
-                <button className="btn btn--secondary btn--sm">Edit</button>
+          {/* Account Details Card */}
+          <div className="settings-panel">
+            <div className="settings-panel-header">
+              <User size={18} className="settings-header-icon" />
+              <div>
+                <h2 className="settings-panel-title">Account Information</h2>
+                <p className="settings-panel-subtitle">Your credentials and farm parcel assignment</p>
               </div>
             </div>
-          </div>
-
-          <div className="dashboard-panel">
-            <div className="panel-header">
-              <h2 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Bell size={18} className="muted" /> Notifications
-              </h2>
-            </div>
-            <div className="panel-list">
-              <div className="list-item" style={{ justifyContent: 'space-between' }}>
-                <div className="list-item-content">
-                  <div className="list-item-title">Push Notifications</div>
-                  <div className="list-item-desc">Receive alerts when it's time to harvest</div>
+            <div className="settings-row-list">
+              <div className="settings-row">
+                <div className="settings-row-info">
+                  <span className="settings-row-title">Email Account</span>
+                  <span className="settings-row-desc">{session.user.email}</span>
                 </div>
-                <input type="checkbox" defaultChecked style={{ width: '20px', height: '20px', accentColor: 'var(--clr-primary-600)' }} />
+                <span className="settings-status-pill">Active</span>
               </div>
-              <div className="list-item" style={{ justifyContent: 'space-between' }}>
-                <div className="list-item-content">
-                  <div className="list-item-title">Email Updates</div>
-                  <div className="list-item-desc">Weekly summaries of your scans</div>
+              <div className="settings-row">
+                <div className="settings-row-info">
+                  <span className="settings-row-title">Province Research Area</span>
+                  <span className="settings-row-desc">Abra Province (Cordillera Administrative Region)</span>
                 </div>
-                <input type="checkbox" style={{ width: '20px', height: '20px', accentColor: 'var(--clr-primary-600)' }} />
               </div>
             </div>
           </div>
 
-          <div className="dashboard-panel">
-            <div className="panel-header">
-              <h2 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Shield size={18} className="muted" /> Privacy & Security
-              </h2>
+          {/* Notifications Card */}
+          <div className="settings-panel">
+            <div className="settings-panel-header">
+              <Bell size={18} className="settings-header-icon" />
+              <div>
+                <h2 className="settings-panel-title">Notification Alerts</h2>
+                <p className="settings-panel-subtitle">Automated maturity window notifications</p>
+              </div>
             </div>
-            <div className="panel-list">
-              <div className="list-item" style={{ justifyContent: 'space-between' }}>
-                <div className="list-item-content">
-                  <div className="list-item-title">Change Password</div>
-                  <div className="list-item-desc">Update your login password</div>
+            <div className="settings-row-list">
+              <div className="settings-row">
+                <div className="settings-row-info">
+                  <span className="settings-row-title">Harvest Window Alerts</span>
+                  <span className="settings-row-desc">Alert when paddy scans transition from Nearly Mature to Harvest Ready</span>
                 </div>
-                <button className="btn btn--secondary btn--sm">Update</button>
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="settings-toggle-checkbox"
+                />
+              </div>
+              <div className="settings-row">
+                <div className="settings-row-info">
+                  <span className="settings-row-title">Weekly Cropping Digest</span>
+                  <span className="settings-row-desc">Receive email summaries of field observations and seasonal outlooks</span>
+                </div>
+                <input
+                  type="checkbox"
+                  className="settings-toggle-checkbox"
+                />
               </div>
             </div>
           </div>
 
+          {/* Security Card */}
+          <div className="settings-panel">
+            <div className="settings-panel-header">
+              <Shield size={18} className="settings-header-icon" />
+              <div>
+                <h2 className="settings-panel-title">Security & Passwords</h2>
+                <p className="settings-panel-subtitle">Protect your account and research classification logs</p>
+              </div>
+            </div>
+            <div className="settings-row-list">
+              <div className="settings-row">
+                <div className="settings-row-info">
+                  <span className="settings-row-title">Account Password</span>
+                  <span className="settings-row-desc">Regularly change your password to keep scan data secure</span>
+                </div>
+                <button type="button" className="btn btn--secondary btn--sm">
+                  Update
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

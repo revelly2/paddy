@@ -18,6 +18,7 @@ ml/logs/
 ml/dataset/train/
 ml/dataset/val/
 ml/dataset/test/
+ml/test_annotated.jpg
 
 # Node
 node_modules/

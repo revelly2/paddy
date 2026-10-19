@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { LifeBuoy, Mail, Phone } from 'lucide-react'
+import { LifeBuoy, Mail, Phone, HelpCircle, ChevronDown, CheckCircle2 } from 'lucide-react'
 
 export default function SupportPage() {
   const [email, setEmail] = useState('support@paddyscan.com')
@@ -14,51 +14,75 @@ export default function SupportPage() {
 
   return (
     <div className="dashboard-page">
-      <div className="dashboard-page__inner" style={{ maxWidth: '800px', margin: '0 auto' }}>
-        <header className="dashboard-header-modern" style={{ borderBottom: 'none', paddingBottom: 0, marginTop: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '48px', height: '48px', background: 'var(--clr-primary-50)', color: 'var(--clr-primary-600)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <LifeBuoy size={24} />
+      <div className="dashboard-page__inner" style={{ maxWidth: '840px', margin: '0 auto' }}>
+        <header className="page-header-clean">
+          <div className="page-header-icon-box">
+            <LifeBuoy size={26} />
+          </div>
+          <div className="page-header-text">
+            <div className="page-header-badge">
+              <HelpCircle size={13} />
+              <span>Assistance & Help Center</span>
             </div>
-            <div>
-              <h1 className="dashboard-title-modern">Help & Support</h1>
-              <p style={{ color: 'var(--clr-text-muted)', fontSize: '0.95rem', marginTop: '4px' }}>
-                Need assistance with PaddyScan? We're here to help.
-              </p>
-            </div>
+            <h1 className="page-header-title">Help & Agronomy Support</h1>
+            <p className="page-header-desc">
+              Have questions about using the scanner or need advice on rice maturity analysis? Reach our technical support team.
+            </p>
           </div>
         </header>
 
-        <div style={{ marginTop: '32px', display: 'grid', gap: '24px', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
-          <div className="clean-card" style={{ flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '32px' }}>
-            <div className="clean-card-icon" style={{ marginBottom: '16px', background: 'var(--clr-primary-50)', color: 'var(--clr-primary-600)' }}>
-              <Mail size={24} />
+        {/* Contact Channels Grid */}
+        <div className="support-channels-grid">
+          <div className="support-channel-card">
+            <div className="channel-icon-wrap channel-icon-wrap--green">
+              <Mail size={22} />
             </div>
-            <h3 className="clean-card-title">Email Us</h3>
-            <p className="clean-card-desc" style={{ marginBottom: '16px' }}>Send us an email and we'll get back to you within 24 hours.</p>
-            <a href={`mailto:${email}`} className="btn btn--secondary">{email}</a>
+            <h3 className="channel-title">Email Technical Support</h3>
+            <p className="channel-desc">Direct inquiries, feedback, or classification questions. Response within 24 hours.</p>
+            <a href={`mailto:${email}`} className="channel-btn">
+              {email}
+            </a>
           </div>
 
-          <div className="clean-card" style={{ flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '32px' }}>
-            <div className="clean-card-icon" style={{ marginBottom: '16px', background: 'var(--clr-primary-50)', color: 'var(--clr-primary-600)' }}>
-              <Phone size={24} />
+          <div className="support-channel-card">
+            <div className="channel-icon-wrap channel-icon-wrap--amber">
+              <Phone size={22} />
             </div>
-            <h3 className="clean-card-title">Call Us</h3>
-            <p className="clean-card-desc" style={{ marginBottom: '16px' }}>Call our hotline for immediate assistance with your crop scanning.</p>
-            <a href={`tel:${phone.replace(/[^0-9+]/g, '')}`} className="btn btn--secondary">{phone}</a>
+            <h3 className="channel-title">Agricultural Hotline</h3>
+            <p className="channel-desc">Speak directly with an agronomy field officer or system technician during harvest hours.</p>
+            <a href={`tel:${phone.replace(/[^0-9+]/g, '')}`} className="channel-btn">
+              {phone}
+            </a>
           </div>
         </div>
 
-        <div style={{ marginTop: '32px', padding: '24px', background: 'var(--clr-white)', border: '1px solid var(--clr-border)', borderRadius: '12px' }}>
-          <h3 style={{ marginBottom: '16px', fontSize: '1.1rem', fontWeight: 600 }}>Frequently Asked Questions</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <h4 style={{ fontWeight: 600, marginBottom: '4px' }}>How do I get the best scan results?</h4>
-              <p style={{ fontSize: '0.9rem', color: 'var(--clr-text-muted)' }}>Make sure to take photos in good daylight, focusing directly on the rice panicles. Avoid blurry or extremely dark images.</p>
+        {/* FAQ Section */}
+        <div className="support-faq-card">
+          <div className="faq-header">
+            <HelpCircle size={20} className="faq-header-icon" />
+            <h3 className="faq-header-title">Frequently Asked Questions</h3>
+          </div>
+
+          <div className="faq-list">
+            <div className="faq-item">
+              <h4 className="faq-question">How does the CNN model determine rice harvest readiness?</h4>
+              <p className="faq-answer">
+                PaddyScan analyzes two visual dimensions: panicle detection (identifying the density and curvature of grain heads) and HSV color-space metrics (evaluating the percentage of golden/amber grains versus green grains). When over 85% of grains have reached golden maturity, the status triggers &ldquo;Ready for Harvest&rdquo;.
+              </p>
             </div>
-            <div>
-              <h4 style={{ fontWeight: 600, marginBottom: '4px' }}>Can I use the app without an internet connection?</h4>
-              <p style={{ fontSize: '0.9rem', color: 'var(--clr-text-muted)' }}>Currently, an internet connection is required to upload the image and receive AI classification results.</p>
+
+            <div className="faq-item">
+              <h4 className="faq-question">What camera angles provide the most accurate predictions?</h4>
+              <p className="faq-answer">
+                Take photographs approximately 30 to 50 cm away from the rice crop under even daylight. Ensure the grain heads are in sharp focus and avoid shooting directly into blinding backlights.
+              </p>
+            </div>
+
+            <div className="faq-item">
+              <h4 className="faq-question">Is the app tailored specifically to Abra rice farming conditions?</h4>
+              <p className="faq-answer">
+                Yes. PaddyScan integrates Abra provincial cropping schedules, distinguishing between Wet Season (Tag-ulan) and Dry Season (Tag-araw) cropping cycles with localized variety guidance.
+              </p>
             </div>
           </div>
         </div>

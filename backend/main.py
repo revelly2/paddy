@@ -35,20 +35,23 @@ import traceback
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional
+import time
 import urllib.request
 import xml.etree.ElementTree as ET
+import jwt
 
 import os
 from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))  # Load .env BEFORE importing modules that read env vars
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Header, Query, Request
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Header, Query, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from classifier import classifier
-from supabase_client import get_supabase_admin, SUPABASE_URL, SUPABASE_ANON_KEY
+from supabase_client import get_supabase_admin, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_JWT_SECRET
+import admin_service
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -212,6 +215,24 @@ async def get_current_user_id(authorization: str = Header(None)) -> str:
     
     token = authorization.split(" ")[1]
     
+    # 1. Fast local verification if SUPABASE_JWT_SECRET is configured
+    if SUPABASE_JWT_SECRET:
+        try:
+            payload = jwt.decode(
+                token,
+                SUPABASE_JWT_SECRET,
+                algorithms=["HS256"],
+                audience="authenticated",
+            )
+            user_id = payload.get("sub")
+            if user_id:
+                return user_id
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=401, detail="Your session has expired. Please log in again.")
+        except jwt.InvalidTokenError as e:
+            logger.warning(f"Local JWT secret check failed: {e}; falling back to Supabase auth client.")
+
+    # 2. Verify via Supabase Auth Admin client
     try:
         admin = get_supabase_admin()
     except Exception as e:
@@ -229,8 +250,55 @@ async def get_current_user_id(authorization: str = Header(None)) -> str:
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to decode token: {e}")
-        raise HTTPException(status_code=401, detail=f"Invalid or expired token: {str(e)}")
+        err_msg = str(e)
+        logger.warning(f"Supabase auth check encountered error: {err_msg}")
+
+        # Check for expired token indicators first
+        if "expired" in err_msg.lower():
+            raise HTTPException(status_code=401, detail="Your session has expired. Please log in again.")
+
+        # If network read or connection timed out, fallback to validating unexpired JWT claims locally
+        is_timeout = any(term in err_msg.lower() for term in ["timed out", "timeout", "connecterror", "readerror", "connection refused"])
+        if is_timeout:
+            try:
+                payload = jwt.decode(token, options={"verify_signature": False, "verify_exp": True})
+                user_id = payload.get("sub")
+                role = payload.get("role")
+                if user_id and role in ("authenticated", "anon", "service_role"):
+                    logger.warning(
+                        f"Supabase auth server timed out ({err_msg}). Falling back to unexpired token claims for user {user_id}."
+                    )
+                    return user_id
+            except jwt.ExpiredSignatureError:
+                raise HTTPException(status_code=401, detail="Your session has expired. Please log in again.")
+            except Exception as jwt_err:
+                logger.error(f"Fallback JWT parsing failed: {jwt_err}")
+                raise HTTPException(status_code=401, detail="Authentication server timed out and token could not be verified.")
+
+        raise HTTPException(status_code=401, detail=f"Invalid or expired token: {err_msg}")
+ 
+ 
+async def require_admin_user(authorization: str = Header(None)) -> str:
+    user_id = await get_current_user_id(authorization)
+    try:
+        admin = get_supabase_admin()
+        u = admin.auth.admin.get_user_by_id(user_id)
+        if u and u.user:
+            role = (u.user.user_metadata or {}).get("role") or (u.user.app_metadata or {}).get("role")
+            if role == "admin":
+                return user_id
+    except Exception as e:
+        logger.warning(f"Admin auth check error: {e}")
+
+    try:
+        admin = get_supabase_admin()
+        res = admin.table("profiles").select("role").eq("id", user_id).maybe_single().execute()
+        if res.data and res.data.get("role") == "admin":
+            return user_id
+    except Exception as e:
+        logger.warning(f"Admin profile check error: {e}")
+
+    raise HTTPException(status_code=403, detail="Admin privileges required for this action.")
 
 
 # ---------------------------------------------------------------------------
@@ -263,9 +331,10 @@ async def health_check():
 
 @app.post("/api/classify", response_model=ClassificationResponse, tags=["Classification"])
 async def classify_image(
+    request:  Request,
     file:     UploadFile = File(..., description="Rice paddy image (JPEG/PNG/BMP/WEBP)"),
-    notes:    Optional[str] = None,
-    location: Optional[str] = None,
+    notes:    Optional[str] = Form(None),
+    location: Optional[str] = Form(None),
     user_id:  str = Depends(get_current_user_id),
 ):
     """
@@ -297,6 +366,20 @@ async def classify_image(
             status_code=413,
             detail=f"File too large ({len(image_bytes) / 1024:.0f} KB). Max: 10 MB.",
         )
+
+    # ---- 1b. Validate location (Mandatory requirement) -------------------
+    clean_location = (location or "").strip()
+    if not clean_location:
+        query_loc = request.query_params.get("location", "").strip()
+        if query_loc:
+            clean_location = query_loc
+
+    if not clean_location:
+        raise HTTPException(
+            status_code=422,
+            detail="Field location is required for harvest maturity classification. Please provide your Abra municipality or barangay.",
+        )
+    location = clean_location
 
     # ---- 2. Roboflow panicle detection + colour analysis -----------------
     if not classifier.ready:
@@ -657,3 +740,144 @@ async def get_ag_news():
                 )
             ]
         )
+
+
+# ---------------------------------------------------------------------------
+# Admin & Content Management Endpoints
+# ---------------------------------------------------------------------------
+
+class CreateUserRequest(BaseModel):
+    email: str
+    password: str
+    full_name: Optional[str] = "Farmer"
+    role: Optional[str] = "user"
+    region: Optional[str] = None
+    farm_name: Optional[str] = None
+
+
+class UpdateUserRequest(BaseModel):
+    full_name: Optional[str] = None
+    role: Optional[str] = None
+    region: Optional[str] = None
+    farm_name: Optional[str] = None
+
+
+class CreateContentRequest(BaseModel):
+    title: str
+    category: str = "General Advisory"
+    summary: str
+    content: str
+    author: Optional[str] = "Provincial Agricultural Office"
+    status: Optional[str] = "Published"
+    priority: Optional[str] = "Normal"
+    target_municipality: Optional[str] = "Abra Province (General)"
+    image_url: Optional[str] = None
+
+
+class UpdateContentRequest(BaseModel):
+    title: Optional[str] = None
+    category: Optional[str] = None
+    summary: Optional[str] = None
+    content: Optional[str] = None
+    author: Optional[str] = None
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    target_municipality: Optional[str] = None
+    image_url: Optional[str] = None
+
+
+@app.get("/api/admin/stats", tags=["Admin"])
+async def get_admin_stats(_admin_id: str = Depends(require_admin_user)):
+    """Return province-wide system statistics, user breakdown, and scan aggregates."""
+    return admin_service.get_admin_system_stats(classifier.ready)
+
+
+@app.get("/api/admin/users", tags=["Admin"])
+async def get_admin_users(_admin_id: str = Depends(require_admin_user)):
+    """List all registered users, roles, and scan counts."""
+    return admin_service.list_admin_users()
+
+
+@app.post("/api/admin/users", tags=["Admin"])
+async def create_admin_user_endpoint(payload: CreateUserRequest, _admin_id: str = Depends(require_admin_user)):
+    """Create a new user account (Farmer or Admin)."""
+    try:
+        user = admin_service.create_admin_user(payload.dict())
+        return user
+    except Exception as e:
+        logger.error(f"Error creating user: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.patch("/api/admin/users/{user_id}", tags=["Admin"])
+async def update_admin_user_endpoint(user_id: str, payload: UpdateUserRequest, _admin_id: str = Depends(require_admin_user)):
+    """Update user role, name, region or farm details."""
+    updates = {k: v for k, v in payload.dict().items() if v is not None}
+    updated = admin_service.update_admin_user(user_id, updates)
+    if not updated:
+        raise HTTPException(status_code=404, detail="User not found or update failed")
+    return updated
+
+
+@app.delete("/api/admin/users/{user_id}", tags=["Admin"])
+async def delete_admin_user_endpoint(user_id: str, _admin_id: str = Depends(require_admin_user)):
+    """Delete a user account and associated classification records."""
+    success = admin_service.delete_admin_user(user_id)
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to delete user")
+    return {"message": "User deleted successfully."}
+
+
+@app.get("/api/content", tags=["Content"])
+async def list_content_public(
+    category: Optional[str] = None,
+    search: Optional[str] = None,
+    _user_id: str = Depends(get_current_user_id)
+):
+    """Retrieve published agricultural advisories and guides for farmers."""
+    return admin_service.list_content(category=category, status="Published", search=search)
+
+
+@app.get("/api/content/{item_id}", tags=["Content"])
+async def get_content_item_endpoint(item_id: str, _user_id: str = Depends(get_current_user_id)):
+    """Retrieve details for a single advisory item."""
+    item = admin_service.get_content_item(item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Advisory not found")
+    return item
+
+
+@app.get("/api/admin/content", tags=["Admin Content"])
+async def list_admin_content(
+    category: Optional[str] = None,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    _admin_id: str = Depends(require_admin_user)
+):
+    """List all content items including drafts and unpublished advisories."""
+    return admin_service.list_content(category=category, status=status, search=search)
+
+
+@app.post("/api/admin/content", tags=["Admin Content"])
+async def create_admin_content(payload: CreateContentRequest, _admin_id: str = Depends(require_admin_user)):
+    """Create a new agricultural advisory or harvest notice."""
+    return admin_service.create_content_item(payload.dict())
+
+
+@app.patch("/api/admin/content/{item_id}", tags=["Admin Content"])
+async def update_admin_content(item_id: str, payload: UpdateContentRequest, _admin_id: str = Depends(require_admin_user)):
+    """Update existing advisory title, text, category, or publish status."""
+    updates = {k: v for k, v in payload.dict().items() if v is not None}
+    item = admin_service.update_content_item(item_id, updates)
+    if not item:
+        raise HTTPException(status_code=404, detail="Advisory item not found")
+    return item
+
+
+@app.delete("/api/admin/content/{item_id}", tags=["Admin Content"])
+async def delete_admin_content(item_id: str, _admin_id: str = Depends(require_admin_user)):
+    """Delete an advisory item."""
+    success = admin_service.delete_content_item(item_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Advisory not found or delete failed")
+    return {"message": "Content deleted successfully."}
