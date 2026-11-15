@@ -2,33 +2,101 @@
   "date": "2026-11-15",
   "workspace": "markdaluson30-gmail-com",
   "detector": {
-    "project": "rice-panicle-dataset-fiemm", "version": 1,
+    "project": "rice-panicle-dataset-fiemm",
+    "version": 1,
     "model_id": "rice-panicle-dataset-fiemm/1",
-    "model_type": "YOLO26 Object Detection (Nano)", "checkpoint": "COCO",
-    "sources": ["tanisha-tasnuva-9t1fk/rice-panicle-dataset (5,572, forked)", "ewuricedataset/rice-panicle-uyxgj (2,628, cloned with annotations)"],
-    "classes": ["Rice-Panicle"],
-    "images_total": 8200, "split": {"train": 6002, "valid": 1389, "test": 809},
-    "preprocessing": ["Auto-Orient", "Resize 640x640 (stretch)"],
+    "model_type": "YOLO26 Object Detection (Nano)",
+    "checkpoint": "COCO",
+    "sources": [
+      "tanisha-tasnuva-9t1fk/rice-panicle-dataset (5,572, forked)",
+      "ewuricedataset/rice-panicle-uyxgj (2,628, cloned with annotations)"
+    ],
+    "classes": [
+      "Rice-Panicle"
+    ],
+    "images_total": 8200,
+    "split": {
+      "train": 6002,
+      "valid": 1389,
+      "test": 809
+    },
+    "preprocessing": [
+      "Auto-Orient",
+      "Resize 640x640 (stretch)"
+    ],
     "augmentation": "online, each epoch: flip horizontal, brightness ±20%, blur ≤8px, mosaic, saturation ±50%, hue ±5°, grayscale, affine ±50% zoom ±10% shift",
-    "epochs": 150, "credit_cap": 5,
-    "status": "training",
-    "metrics": {"mAP50": null, "precision": null, "recall": null}
+    "epochs": 150,
+    "credit_cap": 5,
+    "status": "finished",
+    "metrics": {
+      "valid": {
+        "mAP50": 0.742,
+        "mAP50_95": 0.504,
+        "precision": 0.713,
+        "recall": 0.722,
+        "f1": 0.718,
+        "images": 1389,
+        "boxes": 27702
+      },
+      "test": {
+        "mAP50": 0.777,
+        "mAP50_95": 0.534,
+        "precision": 0.732,
+        "recall": 0.731,
+        "images": 809,
+        "boxes": 14050
+      }
+    },
+    "finished_epochs": 156,
+    "training_hours": 1.81,
+    "endpoint": "https://detect.roboflow.com/rice-panicle-dataset-fiemm/1 (verified 2026-11-15)",
+    "baseline": {
+      "model_id": "rice-panicle-dataset/2 (tanisha-tasnuva-9t1fk)",
+      "model_type": "YOLOv8 Nano",
+      "images_total": 5572,
+      "valid_mAP50": 0.746,
+      "precision": 0.6825,
+      "recall": 0.6958,
+      "note": "Published by its author on its own smaller validation split; not directly comparable."
+    },
+    "field_photo_counts_note": "On the 13 local field photos the new detector found fewer panicles than the baseline (2-9 vs 2-19 per photo). There are no hand-drawn boxes for these photos, so it isn't known which count is closer to the truth."
   },
   "maturity": {
-    "project": "paddy-maturitylevel-dataset-6awsa", "version": 1,
+    "project": "paddy-maturitylevel-dataset-6awsa",
+    "version": 1,
     "model_id": "paddy-maturitylevel-dataset-6awsa/1",
-    "model_type": "ViT Base (vit-base-patch16-224-in21k)", "checkpoint": "ImageNet-21k",
-    "sources": ["kelompok-genius-3/paddy-maturitylevel-dataset (1,054, forked)"],
+    "model_type": "ViT Base (vit-base-patch16-224-in21k)",
+    "checkpoint": "ImageNet-21k",
+    "sources": [
+      "kelompok-genius-3/paddy-maturitylevel-dataset (1,054, forked)"
+    ],
     "excluded_sources": {
       "hakdogidog/maturity-nb3ws": "dragon fruit, not rice",
       "agrisense-dataset/paddy-o34tk": "768 of 989 photos duplicate Kelompok; its 221 unseen photos are used as the independent test set instead"
     },
-    "class_map": {"Raw": "Immature", "Ripe": "Mature"},
-    "classes_count": {"Immature": 771, "Mature": 283},
-    "images_total": 1054, "split": {"train": 743, "valid": 210, "test": 101},
-    "preprocessing": ["Auto-Orient", "Resize 224x224 (stretch)"],
+    "class_map": {
+      "Raw": "Immature",
+      "Ripe": "Mature"
+    },
+    "classes_count": {
+      "Immature": 771,
+      "Mature": 283
+    },
+    "images_total": 1054,
+    "split": {
+      "train": 743,
+      "valid": 210,
+      "test": 101
+    },
+    "preprocessing": [
+      "Auto-Orient",
+      "Resize 224x224 (stretch)"
+    ],
     "augmentation": "online, each epoch: flip horizontal, rotation ±15°, brightness ±15%, blur ≤2.5px (no hue/saturation: colour is the signal)",
-    "epochs": 300, "finished_epochs": 36, "early_stopped": true, "credit_cap": 2,
+    "epochs": 300,
+    "finished_epochs": 36,
+    "early_stopped": true,
+    "credit_cap": 2,
     "status": "finished",
     "metrics": {
       "roboflow_test_accuracy": 1.0,
