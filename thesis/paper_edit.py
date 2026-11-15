@@ -123,6 +123,20 @@ def bump_tables(doc, start: int) -> int:
     return n
 
 
+def replace_figure(doc, caption_start: str, png_path: str) -> None:
+    """Swap the picture just above a figure caption, keeping its width."""
+    from PIL import Image
+    cap = [p for p in doc.paragraphs if p.text.startswith(caption_start)][-1]  # the caption, not the list entry
+    el = cap._p.getprevious()
+    while not el.xpath(".//a:blip"):
+        el = el.getprevious()
+    part = doc.part.related_parts[el.xpath(".//a:blip/@r:embed")[0]]
+    part._blob = open(png_path, "rb").read()
+    w, h = Image.open(png_path).size
+    for ext in el.xpath(".//wp:extent | .//a:xfrm/a:ext"):
+        ext.set("cy", str(int(int(ext.get("cx")) * h / w)))
+
+
 def pct(x: float) -> str:
     return f"{x * 100:.1f}%"
 
@@ -357,6 +371,11 @@ def main(src=SRC, out=OUT) -> None:
     ]
     for parts in refs:
         insert_reference_sorted(doc, parts).alignment = WD_ALIGN_PARAGRAPH.LEFT  # long URLs stretch justified lines
+
+    # Figures 3 and 4 redrawn by thesis/figures/*.js for the trained models
+    figs = os.path.join(HERE, "figures", "figures")
+    replace_figure(doc, "Figure 3. Two-Stage Classification Pipeline", os.path.join(figs, "fig3_pipeline.png"))
+    replace_figure(doc, "Figure 4. System Architecture", os.path.join(figs, "fig4_architecture.png"))
 
     doc.save(out)
     print(f"Wrote {out}  (tables renumbered in {tables_bumped} runs, {len(refs)} references, "
