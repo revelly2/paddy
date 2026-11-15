@@ -1,0 +1,23 @@
+{
+  "n": 233,
+  "accuracy": 0.6652,
+  "precision_mature": 0.9708,
+  "recall_mature": 0.6425,
+  "mean_confidence": 0.8185,
+  "confusion": {
+    "Immature": {
+      "Immature": 22,
+      "Mature": 4
+    },
+    "Mature": {
+      "Immature": 74,
+      "Mature": 133
+    }
+  },
+  "rejected": 1,
+  "errors": [],
+  "panicle_model": "rice-panicle-dataset/2",
+  "maturity_model": null,
+  "data": "Z:\\Users\\Admin\\Desktop\\2026\\Code\\THESIS\\paddy\\ml\\data\\maturity_test",
+  "date": "2026-11-15T13:50:20+00:00"
+}

@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-15",
+  "workspace": "markdaluson30-gmail-com",
+  "detector": {
+    "project": "rice-panicle-dataset-fiemm", "version": 1,
+    "model_id": "rice-panicle-dataset-fiemm/1",
+    "model_type": "YOLO26 Object Detection (Nano)", "checkpoint": "COCO",
+    "sources": ["tanisha-tasnuva-9t1fk/rice-panicle-dataset (5,572, forked)", "ewuricedataset/rice-panicle-uyxgj (2,628, cloned with annotations)"],
+    "classes": ["Rice-Panicle"],
+    "images_total": 8200, "split": {"train": 6002, "valid": 1389, "test": 809},
+    "preprocessing": ["Auto-Orient", "Resize 640x640 (stretch)"],
+    "augmentation": "online, each epoch: flip horizontal, brightness ±20%, blur ≤8px, mosaic, saturation ±50%, hue ±5°, grayscale, affine ±50% zoom ±10% shift",
+    "epochs": 150, "credit_cap": 5,
+    "status": "training",
+    "metrics": {"mAP50": null, "precision": null, "recall": null}
+  },
+  "maturity": {
+    "project": "paddy-maturitylevel-dataset-6awsa", "version": 1,
+    "model_id": "paddy-maturitylevel-dataset-6awsa/1",
+    "model_type": "ViT Base (vit-base-patch16-224-in21k)", "checkpoint": "ImageNet-21k",
+    "sources": ["kelompok-genius-3/paddy-maturitylevel-dataset (1,054, forked)"],
+    "excluded_sources": {
+      "hakdogidog/maturity-nb3ws": "dragon fruit, not rice",
+      "agrisense-dataset/paddy-o34tk": "768 of 989 photos duplicate Kelompok; its 221 unseen photos are used as the independent test set instead"
+    },
+    "class_map": {"Raw": "Immature", "Ripe": "Mature"},
+    "classes_count": {"Immature": 771, "Mature": 283},
+    "images_total": 1054, "split": {"train": 743, "valid": 210, "test": 101},
+    "preprocessing": ["Auto-Orient", "Resize 224x224 (stretch)"],
+    "augmentation": "online, each epoch: flip horizontal, rotation ±15°, brightness ±15%, blur ≤2.5px (no hue/saturation: colour is the signal)",
+    "epochs": 300, "finished_epochs": 36, "early_stopped": true, "credit_cap": 2,
+    "status": "finished",
+    "metrics": {
+      "roboflow_test_accuracy": 1.0,
+      "roboflow_test_accuracy_note": "Not reported in the paper: 173 Kelompok photos appear (as augmented copies) in more than one of train/valid/test, so this split leaks. Use ml/results/eval_after_models.json on the independent set."
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "n": 13,
+  "accuracy": 0.9231,
+  "precision_mature": 1.0,
+  "recall_mature": 0.6667,
+  "mean_confidence": 0.7504,
+  "confusion": {
+    "Immature": {
+      "Immature": 10,
+      "Mature": 0
+    },
+    "Mature": {
+      "Immature": 1,
+      "Mature": 2
+    }
+  },
+  "rejected": 0,
+  "errors": [],
+  "panicle_model": "rice-panicle-dataset/2",
+  "maturity_model": null,
+  "data": "C:\\Users\\Admin\\AppData\\Local\\Temp\\claude\\217be7740923f95c\\3cc62835-99a9-4a14-83a2-53de909bb28e\\scratchpad\\smoke",
+  "date": "2026-11-15T11:44:06+00:00"
+}
