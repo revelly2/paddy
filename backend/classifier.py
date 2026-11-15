@@ -78,6 +78,7 @@ LABEL_COLORS_BGR = {
 # Panicle detection model hosted on Roboflow (Tanisha Tasnuva, 5.5k images, CC BY 4.0)
 PANICLE_MODEL_ID = os.getenv("PANICLE_MODEL_ID", "rice-panicle-dataset/2")
 ROBOFLOW_INFER_URL = "https://detect.roboflow.com"
+ROBOFLOW_CLASSIFY_URL = "https://classify.roboflow.com"
 
 # Fallback: existing classification workflow
 WORKSPACE_NAME = "markdaluson30-gmail-com"
@@ -149,7 +150,8 @@ def _detect_panicles(image_bytes: bytes, api_key: str, confidence: float = 0.25)
     """
     b64_image = base64.b64encode(image_bytes).decode("ascii")
 
-    url = f"{ROBOFLOW_INFER_URL}/{PANICLE_MODEL_ID}"
+    # read at call time: main.py loads .env after this module is imported
+    url = f"{ROBOFLOW_INFER_URL}/{os.getenv('PANICLE_MODEL_ID') or PANICLE_MODEL_ID}"
     params = {
         "api_key": api_key,
         "confidence": str(confidence),
@@ -168,6 +170,21 @@ def _detect_panicles(image_bytes: bytes, api_key: str, confidence: float = 0.25)
         data = response.json()
 
     return data.get("predictions", [])
+
+
+def _classify_maturity(image_bytes: bytes, api_key: str, model_id: str) -> float:
+    """Ask the trained Roboflow maturity classifier for P(Mature) of the whole photo."""
+    b64_image = base64.b64encode(image_bytes).decode("ascii")
+    with httpx.Client() as client:
+        response = client.post(
+            f"{ROBOFLOW_CLASSIFY_URL}/{model_id}",
+            params={"api_key": api_key},
+            content=b64_image,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            timeout=10.0,
+        )
+        response.raise_for_status()
+        return parse_maturity_response(response.json())
 
 
 def _classify_panicle_hsv(crop_bgr: np.ndarray) -> tuple[str, float, float, float]:
@@ -300,6 +317,7 @@ class PaddyClassifier:
             cls._instance = super().__new__(cls)
             cls._instance._api_key = None
             cls._instance._ready = False
+            cls._instance._maturity_model_id = None
         return cls._instance
 
     def load(self, model_path: str = None) -> None:
@@ -313,10 +331,11 @@ class PaddyClassifier:
             return
 
         self._api_key = api_key
+        self._maturity_model_id = (os.getenv("MATURITY_MODEL_ID") or "").strip() or None
         self._ready = True
         logger.info(
-            "Roboflow client configured — panicle model: %s, workflow fallback: %s",
-            PANICLE_MODEL_ID, WORKFLOW_ID,
+            "Roboflow client configured — panicle model: %s, maturity model: %s, workflow fallback: %s",
+            os.getenv("PANICLE_MODEL_ID") or PANICLE_MODEL_ID, self._maturity_model_id, WORKFLOW_ID,
         )
 
     @property
@@ -325,9 +344,11 @@ class PaddyClassifier:
 
     def classify(self, image_bytes: bytes) -> dict:
         """
-        Detect panicles → classify each by HSV → aggregate → annotate.
+        Check photo → detect panicles → classify each by HSV → annotate.
+        When MATURITY_MODEL_ID is set, the trained maturity model decides the
+        field label; HSV stays for the per-panicle boxes and as the fallback.
 
-        Falls back to the whole-image workflow if panicle detection finds nothing.
+        Falls back to the whole-image workflow if nothing else gives a result.
         """
         if not self._ready:
             raise RuntimeError(
@@ -335,7 +356,23 @@ class PaddyClassifier:
                 "Set ROBOFLOW_API_KEY in .env and restart the server."
             )
 
-        # --- Step 1: detect panicles ---
+        # --- Step 1: decode and reject unusable photos ---
+        arr = np.frombuffer(image_bytes, dtype=np.uint8)
+        img_bgr = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+        if img_bgr is None:
+            raise RuntimeError("Failed to decode uploaded image.")
+        check_image_quality(img_bgr)
+        h_img, w_img = img_bgr.shape[:2]
+
+        # --- Step 2: trained maturity model (optional) ---
+        p_mature = None
+        if self._maturity_model_id:
+            try:
+                p_mature = _classify_maturity(image_bytes, self._api_key, self._maturity_model_id)
+            except Exception as e:
+                logger.warning("Maturity model failed, using HSV result: %s", e)
+
+        # --- Step 3: detect panicles ---
         try:
             detections = _detect_panicles(image_bytes, self._api_key)
         except Exception as e:
@@ -343,17 +380,17 @@ class PaddyClassifier:
             detections = []
 
         if not detections:
+            if p_mature is not None:
+                return {
+                    **self._maturity_fields(p_mature),
+                    "panicle_count":       0,
+                    "panicle_details":     [],
+                    "annotated_image_b64": base64.b64encode(image_bytes).decode("ascii"),
+                }
             logger.info("No panicles detected — falling back to whole-image workflow.")
             return self._classify_via_workflow(image_bytes)
 
         logger.info("Detected %d panicle(s), running HSV analysis on each.", len(detections))
-
-        # --- Step 2: decode image for cropping ---
-        arr = np.frombuffer(image_bytes, dtype=np.uint8)
-        img_bgr = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-        if img_bgr is None:
-            raise RuntimeError("Failed to decode uploaded image.")
-        h_img, w_img = img_bgr.shape[:2]
 
         # --- Step 3: classify each panicle ---
         panicle_details = []
@@ -401,7 +438,7 @@ class PaddyClassifier:
         # --- Step 5: annotate image ---
         annotated_bytes = _annotate_image(image_bytes, detections, panicle_labels)
 
-        return {
+        result = {
             "label":               CLASS_DISPLAY_NAMES.get(top_class, top_class),
             "label_key":           top_class,
             "confidence":          round(overall_confidence, 4),
@@ -410,6 +447,25 @@ class PaddyClassifier:
             "panicle_count":       len(panicle_details),
             "panicle_details":     panicle_details,
             "annotated_image_b64": base64.b64encode(annotated_bytes).decode("ascii"),
+        }
+        if p_mature is not None:
+            result.update(self._maturity_fields(p_mature))
+        return result
+
+    @staticmethod
+    def _maturity_fields(p_mature: float) -> dict:
+        """Field-level label, confidence and advice from the maturity model's P(Mature)."""
+        label_key, confidence = band_label(p_mature)
+        return {
+            "label":         CLASS_DISPLAY_NAMES[label_key],
+            "label_key":     label_key,
+            "confidence":    confidence,
+            "probabilities": {
+                "Immature":          round(1 - p_mature, 4),
+                "Nearly_Mature":     0.0,
+                "Ready_for_Harvest": round(p_mature, 4),
+            },
+            "advice":        HARVEST_ADVICE.get(label_key, ""),
         }
 
     def _classify_via_workflow(self, image_bytes: bytes) -> dict:

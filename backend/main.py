@@ -49,7 +49,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from classifier import classifier
+from classifier import PoorImageError, classifier
 from supabase_client import get_supabase_admin, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_JWT_SECRET
 import admin_service
 
@@ -391,6 +391,11 @@ async def classify_image(
 
     try:
         prediction = classifier.classify(image_bytes)
+    except PoorImageError as e:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Photo is too {e.reason}. Retake it in daylight and hold the camera steady.",
+        )
     except Exception as e:
         logger.error("Inference error: %s\n%s", e, traceback.format_exc())
         raise HTTPException(status_code=500, detail="Classification failed. See server logs.")
