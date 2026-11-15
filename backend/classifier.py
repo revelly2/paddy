@@ -76,7 +76,7 @@ LABEL_COLORS_BGR = {
 }
 
 # Panicle detection model hosted on Roboflow (Tanisha Tasnuva, 5.5k images, CC BY 4.0)
-PANICLE_MODEL_ID = "rice-panicle-dataset/2"
+PANICLE_MODEL_ID = os.getenv("PANICLE_MODEL_ID", "rice-panicle-dataset/2")
 ROBOFLOW_INFER_URL = "https://detect.roboflow.com"
 
 # Fallback: existing classification workflow
@@ -92,6 +92,51 @@ GREEN_HUE_LOW, GREEN_HUE_HIGH = 25, 85
 GOLDEN_HUE_LOW, GOLDEN_HUE_HIGH = 10, 25
 MIN_SATURATION = 30
 MIN_VALUE = 40
+
+# P(Mature) bands from the trained maturity classifier. No public dataset labels
+# the transition stage, so the middle band is reported as Nearly Mature.
+MATURITY_LOW, MATURITY_HIGH = 0.35, 0.65
+
+# Photo quality guard. shortcut: fixed thresholds, tune on ml/evaluate.py rejects if too strict
+MIN_SHARPNESS = 60   # Laplacian variance of the grayscale image
+MIN_BRIGHTNESS = 50  # mean HSV value channel
+
+
+class PoorImageError(ValueError):
+    """Raised when a photo is too dark or blurry to classify reliably."""
+
+    def __init__(self, reason: str):
+        super().__init__(f"Photo is too {reason}")
+        self.reason = reason
+
+
+def check_image_quality(img_bgr: np.ndarray) -> None:
+    """Raise PoorImageError if the photo is too dark or too blurry."""
+    hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
+    if hsv[:, :, 2].mean() < MIN_BRIGHTNESS:
+        raise PoorImageError("too dark")
+    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+    if cv2.Laplacian(gray, cv2.CV_64F).var() < MIN_SHARPNESS:
+        raise PoorImageError("blurry")
+
+
+def band_label(p_mature: float) -> tuple[str, float]:
+    """Map P(Mature) to an app label and the confidence shown for it."""
+    if p_mature < MATURITY_LOW:
+        return "Immature", round(1 - p_mature, 4)
+    if p_mature > MATURITY_HIGH:
+        return "Ready_for_Harvest", round(p_mature, 4)
+    return "Nearly_Mature", round(1 - 2 * abs(p_mature - 0.5), 4)
+
+
+def parse_maturity_response(data: dict) -> float:
+    """Return P(Mature) from a Roboflow single-label classification response."""
+    scores = {p.get("class"): float(p.get("confidence", 0)) for p in data.get("predictions", [])}
+    if "Mature" in scores:
+        return scores["Mature"]
+    if "Immature" in scores:
+        return 1 - scores["Immature"]
+    raise ValueError(f"Maturity response has no Mature/Immature class: {data!r}")
 
 
 def _detect_panicles(image_bytes: bytes, api_key: str, confidence: float = 0.25) -> list[dict]:
