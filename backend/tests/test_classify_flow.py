@@ -69,3 +69,14 @@ def test_no_panicles_uses_model_result(paddy, monkeypatch, sharp_jpeg):
 def test_dark_photo_rejected(paddy):
     with pytest.raises(clf.PoorImageError):
         paddy.classify(_jpeg(np.zeros((300, 300, 3), np.uint8)))
+
+
+def test_maturity_model_defaults_on_and_none_turns_it_off(monkeypatch):
+    import classifier as c
+    monkeypatch.setenv("ROBOFLOW_API_KEY", "test-key")
+    monkeypatch.delenv("MATURITY_MODEL_ID", raising=False)
+    c.classifier.load()
+    assert c.classifier._maturity_model_id == c.MATURITY_MODEL_ID
+    monkeypatch.setenv("MATURITY_MODEL_ID", "none")
+    c.classifier.load()
+    assert c.classifier._maturity_model_id is None

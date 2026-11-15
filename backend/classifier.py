@@ -75,8 +75,9 @@ LABEL_COLORS_BGR = {
     "Ready_for_Harvest": (0, 0, 220),      # Red
 }
 
-# Panicle detection model hosted on Roboflow (Tanisha Tasnuva, 5.5k images, CC BY 4.0)
+# Models the team trained on Roboflow (see ml/results/training_record.json)
 PANICLE_MODEL_ID = os.getenv("PANICLE_MODEL_ID", "rice-panicle-dataset-fiemm/1")
+MATURITY_MODEL_ID = "paddy-maturitylevel-dataset-6awsa/1"  # MATURITY_MODEL_ID=none -> HSV only
 ROBOFLOW_INFER_URL = "https://detect.roboflow.com"
 ROBOFLOW_CLASSIFY_URL = "https://classify.roboflow.com"
 
@@ -339,7 +340,8 @@ class PaddyClassifier:
             return
 
         self._api_key = api_key
-        self._maturity_model_id = (os.getenv("MATURITY_MODEL_ID") or "").strip() or None
+        model = os.getenv("MATURITY_MODEL_ID", MATURITY_MODEL_ID).strip()
+        self._maturity_model_id = None if model.lower() in ("", "none") else model
         self._ready = True
         logger.info(
             "Roboflow client configured — panicle model: %s, maturity model: %s, workflow fallback: %s",

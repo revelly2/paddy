@@ -99,7 +99,7 @@ def main() -> None:
         "rejected": rejected,
         "errors": errors,
         "panicle_model": os.getenv("PANICLE_MODEL_ID") or "rice-panicle-dataset-fiemm/1",
-        "maturity_model": os.getenv("MATURITY_MODEL_ID") or None,
+        "maturity_model": classifier._maturity_model_id,
         "data": os.path.abspath(args.data),
         "date": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
