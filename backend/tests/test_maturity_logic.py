@@ -30,3 +30,10 @@ def test_quality_guard():
         check_image_quality(np.full((200, 200, 3), 10, np.uint8))
     with pytest.raises(PoorImageError, match="blurry"):
         check_image_quality(cv2.GaussianBlur(sharp, (51, 51), 0))
+
+
+def test_quality_guard_ignores_resolution():
+    # A full-size phone photo has a low per-pixel Laplacian even when it is sharp
+    rng = np.random.default_rng(0)
+    sharp = rng.integers(60, 255, (200, 150, 3), dtype=np.uint8)
+    check_image_quality(cv2.resize(sharp, (1536, 2048), interpolation=cv2.INTER_LINEAR))

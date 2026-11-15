@@ -98,8 +98,13 @@ MIN_VALUE = 40
 # the transition stage, so the middle band is reported as Nearly Mature.
 MATURITY_LOW, MATURITY_HIGH = 0.35, 0.65
 
-# Photo quality guard. shortcut: fixed thresholds, tune on ml/evaluate.py rejects if too strict
-MIN_SHARPNESS = 60   # Laplacian variance of the grayscale image
+# Photo quality guard. Sharpness is measured at a fixed width because the
+# Laplacian variance falls with resolution; the threshold is low because a
+# global score cannot tell a blurred background (portrait mode) from a blurred
+# photo. On 18 local field photos, usable ones scored 33-1571 at 512 px.
+# shortcut: catches only severe blur; use a per-panicle sharpness check if bad photos slip through
+QUALITY_WIDTH = 512
+MIN_SHARPNESS = 20   # Laplacian variance of the grayscale image at QUALITY_WIDTH
 MIN_BRIGHTNESS = 50  # mean HSV value channel
 
 
@@ -116,6 +121,9 @@ def check_image_quality(img_bgr: np.ndarray) -> None:
     hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
     if hsv[:, :, 2].mean() < MIN_BRIGHTNESS:
         raise PoorImageError("too dark")
+    h, w = img_bgr.shape[:2]
+    if w > QUALITY_WIDTH:
+        img_bgr = cv2.resize(img_bgr, (QUALITY_WIDTH, round(h * QUALITY_WIDTH / w)), interpolation=cv2.INTER_AREA)
     gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
     if cv2.Laplacian(gray, cv2.CV_64F).var() < MIN_SHARPNESS:
         raise PoorImageError("blurry")
