@@ -6,7 +6,7 @@ Rice Harvest Maturity Classification via Roboflow Panicle Detection + HSV Analys
 Architecture
 ------------
 1.  Send image to the Roboflow serverless inference API to detect rice panicles
-    using a pre-trained object detection model (rice-panicle-dataset/2).
+    using the team's YOLO26 detector trained on Roboflow (rice-panicle-dataset-fiemm/1).
 2.  Crop each detected panicle region from the image.
 3.  Run HSV colour analysis on each panicle to classify maturity:
     - High green ratio → Immature
@@ -76,7 +76,7 @@ LABEL_COLORS_BGR = {
 }
 
 # Panicle detection model hosted on Roboflow (Tanisha Tasnuva, 5.5k images, CC BY 4.0)
-PANICLE_MODEL_ID = os.getenv("PANICLE_MODEL_ID", "rice-panicle-dataset/2")
+PANICLE_MODEL_ID = os.getenv("PANICLE_MODEL_ID", "rice-panicle-dataset-fiemm/1")
 ROBOFLOW_INFER_URL = "https://detect.roboflow.com"
 ROBOFLOW_CLASSIFY_URL = "https://classify.roboflow.com"
 

@@ -98,7 +98,7 @@ def main() -> None:
         **metrics(y_true, y_pred, conf),
         "rejected": rejected,
         "errors": errors,
-        "panicle_model": os.getenv("PANICLE_MODEL_ID") or "rice-panicle-dataset/2",
+        "panicle_model": os.getenv("PANICLE_MODEL_ID") or "rice-panicle-dataset-fiemm/1",
         "maturity_model": os.getenv("MATURITY_MODEL_ID") or None,
         "data": os.path.abspath(args.data),
         "date": datetime.now(timezone.utc).isoformat(timespec="seconds"),

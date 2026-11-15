@@ -84,7 +84,7 @@ ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/bmp", "image/webp"}
 async def lifespan(app: FastAPI):
     """Initialise the Roboflow client when the server starts."""
     logger.info("Starting Paddy Rice API …")
-    classifier.load()  # reads ROBOFLOW_API_KEY / ROBOFLOW_MODEL_ID from env
+    classifier.load()  # reads ROBOFLOW_API_KEY / PANICLE_MODEL_ID / MATURITY_MODEL_ID from env
     if classifier.ready:
         logger.info("✓ Roboflow panicle detection client ready.")
     else:

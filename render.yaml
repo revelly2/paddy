@@ -15,5 +15,9 @@ services:
         value: "https://paddy-orpin.vercel.app"
       - key: ROBOFLOW_API_KEY
         sync: false
+      - key: PANICLE_MODEL_ID
+        value: "rice-panicle-dataset-fiemm/1"
+      - key: MATURITY_MODEL_ID
+        value: "paddy-maturitylevel-dataset-6awsa/1"
       - key: STORAGE_BUCKET
         value: "rice-images"

@@ -1,0 +1,23 @@
+{
+  "n": 13,
+  "accuracy": 0.9231,
+  "precision_mature": 1.0,
+  "recall_mature": 0.6667,
+  "mean_confidence": 0.9736,
+  "confusion": {
+    "Immature": {
+      "Immature": 10,
+      "Mature": 0
+    },
+    "Mature": {
+      "Immature": 1,
+      "Mature": 2
+    }
+  },
+  "rejected": 0,
+  "errors": [],
+  "panicle_model": "rice-panicle-dataset-fiemm/1",
+  "maturity_model": "paddy-maturitylevel-dataset-6awsa/1",
+  "data": "Z:\\Users\\Admin\\Desktop\\2026\\Code\\THESIS\\paddy\\ml\\data\\local_test",
+  "date": "2026-11-15T15:22:36+00:00"
+}
